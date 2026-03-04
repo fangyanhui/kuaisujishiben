@@ -174,7 +174,7 @@ function saveStatus(){
 function loadLv1(){
   const t = getStatusTree();
   const sel = document.getElementById("lv1");
-  sel.innerHTML = '<option value="">1级</option>';
+  sel.innerHTML = '<option value="">选项1</option>';
   Object.keys(t).forEach(k=>{
     const o = document.createElement("option");
     o.value=k; o.textContent=k; sel.appendChild(o);
@@ -185,7 +185,7 @@ function loadLv2(){
   const t = getStatusTree();
   const v1 = document.getElementById("lv1").value;
   const sel = document.getElementById("lv2");
-  sel.innerHTML = '<option value="">2级</option>';
+  sel.innerHTML = '<option value="">选项2</option>';
   if(t[v1]) Object.keys(t[v1]).forEach(k=>{
     const o = document.createElement("option");
     o.value=k; o.textContent=k; sel.appendChild(o);
@@ -197,7 +197,7 @@ function loadLv3(){
   const v1 = document.getElementById("lv1").value;
   const v2 = document.getElementById("lv2").value;
   const sel = document.getElementById("lv3");
-  sel.innerHTML = '<option value="">3级</option>';
+  sel.innerHTML = '<option value="">选项3</option>';
   if(t[v1]?.[v2]) Object.keys(t[v1][v2]).forEach(k=>{
     const o = document.createElement("option");
     o.value=k; o.textContent=k; sel.appendChild(o);
@@ -210,7 +210,7 @@ function loadLv4(){
   const v2 = document.getElementById("lv2").value;
   const v3 = document.getElementById("lv3").value;
   const sel = document.getElementById("lv4");
-  sel.innerHTML = '<option value="">4级</option>';
+  sel.innerHTML = '<option value="">选项4</option>';
   const list = t[v1]?.[v2]?.[v3] || [];
   list.forEach(k=>{
     const o = document.createElement("option");
@@ -388,3 +388,4 @@ renderAll();
 </body>
 
 </html>
+
