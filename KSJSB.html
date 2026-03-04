@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<meta charset="utf-8" name="viewport" content="width=device-width, initial-scale=1.0">
+<title>快速记事本·4级联动版</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;padding:12px;background:#f6f6f6;font-family:system-ui,sans-serif;max-width:420px;margin:0 auto}
+.title{text-align:center;font-size:18px;margin:10px 0;font-weight:bold}
+
+.main-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:8px 0}
+.item{padding:8px 4px;text-align:center;border:1px solid #ccc;border-radius:6px;background:#fff;font-size:12px;cursor:pointer}
+.item.active{background:#4CAF50;color:#fff;border-color:#4CAF50}
+
+.pill{display:inline-block;padding:4px 8px;margin:2px;border-radius:6px;border:1px solid #ccc;font-size:12px;cursor:pointer}
+.pill.active{background:#4CAF50;color:#fff}
+.pill.inactive{background:#fff;color:#000}
+
+.level-row{display:flex;gap:6px;margin-top:8px}
+.level-row select{flex:1;padding:12px;border-radius:8px;border:1px solid #ccc;font-size:14px}
+
+input,select,button{width:100%;padding:12px;border-radius:8px;border:1px solid #ccc;font-size:15px;margin:0}
+input::placeholder{color:#999}
+button{background:#2196F3;color:white;border:none;cursor:pointer}
+button.gray{background:#777}
+button.red{background:#f44}
+
+.btn-group{display:flex;gap:8px;margin:10px 0}
+
+.record-card{background:#fff;border:1px solid #ddd;border-radius:10px;padding:10px;margin-bottom:10px}
+.record-status{font-size:16px;font-weight:bold;color:#2196F3;margin-bottom:4px}
+.record-time{font-size:13px;color:#666;margin-bottom:8px}
+.record-people{margin-bottom:8px}
+.record-btns{display:flex;gap:4px}
+.record-btns button{padding:4px 6px;font-size:12px}
+
+.all-page{display:none}
+
+.modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:none;justify-content:center;align-items:center;padding:10px}
+.modal-content{background:#fff;border-radius:12px;width:100%;max-width:400px;padding:16px}
+.modal-title{font-size:16px;font-weight:bold;margin-bottom:10px}
+.modal-textarea{width:100%;height:260px;padding:10;border-radius:6px;border:1px solid #ccc;font-size:14px}
+
+/* 复制预览弹窗样式 */
+#previewModal {position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);display:none;justify-content:center;align-items:center;padding:10px;z-index:9999}
+#previewCard {background:#fff;border-radius:12px;max-width:360px;width:100%;padding:20px}
+#previewText {white-space:pre-line;background:#f4f4f4;padding:10px;border-radius:6px;margin:10px 0;font-size:14px}
+</style>
+
+<body>
+
+<div class="main-page">
+  <div class="title">快速记事本·状态标记</div>
+  <div class="btn-group">
+    <button class="gray" onclick="openPeopleEdit()">编辑名单</button>
+    <button class="gray" onclick="openStatusEdit()">编辑状态</button>
+  </div>
+
+  <div class="main-grid" id="mainGrid"></div>
+
+  <input id="customInput" placeholder="仅手动输入" autocomplete="off">
+  <div class="level-row">
+    <select id="lv1" onchange="loadLv2()"></select>
+    <select id="lv2" onchange="loadLv3()"></select>
+    <select id="lv3" onchange="loadLv4()"></select>
+    <select id="lv4"></select>
+  </div>
+
+  <div class="btn-group">
+    <button onclick="generate()">开始生成</button>
+    <button class="gray" onclick="clearSelected()">清除选中</button>
+  </div>
+
+  <div class="title">最近5条·状态可追踪</div>
+  <div id="recentRecords"></div>
+  <button class="gray" onclick="showAllPage()">查看所有记录</button>
+</div>
+
+<div class="all-page">
+  <button class="gray" onclick="showMainPage()">← 返回标记页</button>
+  <button class="red" onclick="clearAllRecords()">清空全部记录</button>
+  <div class="title">全部历史记录·状态可追踪</div>
+  <div id="allRecords"></div>
+</div>
+
+<!-- 复制预览弹窗 -->
+<div id="previewModal">
+  <div id="previewCard">
+    <div style="font-weight:bold;font-size:16px;margin-bottom:8px">复制成功</div>
+    <div id="previewText"></div>
+    <button style="margin-top:12px;background:#2196F5;color:white;border:none;padding:10px;border-radius:8px;width:100%" onclick="closePreview()">确定</button>
+  </div>
+</div>
+
+<div id="peopleModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-title">编辑名单（一行一个）</div>
+    <textarea class="modal-textarea" id="peopleText"></textarea>
+    <div class="btn-group">
+      <button onclick="savePeople()">保存</button>
+      <button class="gray" onclick="closePeopleModal()">取消</button>
+    </div>
+  </div>
+</div>
+
+<div id="statusModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-title">4级状态编辑（格式：1>2>3>4）</div>
+    <textarea class="modal-textarea" id="statusText"></textarea>
+    <div class="btn-group">
+      <button onclick="saveStatus()">保存</button>
+      <button class="gray" onclick="closeStatusModal()">取消</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'jichibang_records';
+const PEOPLE_KEY = 'cfg_people';
+const STATUS_KEY = 'cfg_status4';
+const week = ["周日","周一","周二","周三","周四","周五","周六"];
+
+function getPeopleText(){
+  return localStorage.getItem(PEOPLE_KEY) || "人1\n人2\n人3\n人4\n人5";
+}
+function setPeopleText(t){ localStorage.setItem(PEOPLE_KEY,t) }
+function getPeople(){
+  return getPeopleText().split("\n").map(x=>x.trim()).filter(Boolean);
+}
+
+function getStatusText(){
+  return localStorage.getItem(STATUS_KEY) || `出勤>上午>第一节>正常
+出勤>上午>第一节>迟到
+出勤>上午>第二节>正常
+出勤>下午>第三节>正常
+请假>病假>居家>康复中
+请假>事假>外出>处理私事`;
+}
+function setStatusText(t){ localStorage.setItem(STATUS_KEY,t) }
+
+function getStatusTree(){
+  const lines = getStatusText().split("\n").map(x=>x.trim()).filter(Boolean);
+  const tree = {};
+  lines.forEach(line=>{
+    const [a,b,c,d] = line.split(">").map(x=>x.trim()).filter(Boolean);
+    if(!a) return;
+    if(!tree[a]) tree[a] = {};
+    if(!tree[a][b]) tree[a][b] = {};
+    if(!tree[a][b][c]) tree[a][b][c] = [];
+    if(d && !tree[a][b][c].includes(d)) tree[a][b][c].push(d);
+  });
+  return tree;
+}
+
+function openPeopleEdit(){
+  document.getElementById("peopleText").value = getPeopleText();
+  document.getElementById("peopleModal").style.display = "flex";
+}
+function closePeopleModal(){ document.getElementById("peopleModal").style.display = "none"; }
+function savePeople(){
+  setPeopleText(document.getElementById("peopleText").value);
+  closePeopleModal(); renderAll();
+}
+
+function openStatusEdit(){
+  document.getElementById("statusText").value = getStatusText();
+  document.getElementById("statusModal").style.display = "flex";
+}
+function closeStatusModal(){ document.getElementById("statusModal").style.display = "none"; }
+function saveStatus(){
+  setStatusText(document.getElementById("statusText").value);
+  closeStatusModal(); renderAll();
+}
+
+function loadLv1(){
+  const t = getStatusTree();
+  const sel = document.getElementById("lv1");
+  sel.innerHTML = '<option value="">1级</option>';
+  Object.keys(t).forEach(k=>{
+    const o = document.createElement("option");
+    o.value=k; o.textContent=k; sel.appendChild(o);
+  });
+  loadLv2();
+}
+function loadLv2(){
+  const t = getStatusTree();
+  const v1 = document.getElementById("lv1").value;
+  const sel = document.getElementById("lv2");
+  sel.innerHTML = '<option value="">2级</option>';
+  if(t[v1]) Object.keys(t[v1]).forEach(k=>{
+    const o = document.createElement("option");
+    o.value=k; o.textContent=k; sel.appendChild(o);
+  });
+  loadLv3();
+}
+function loadLv3(){
+  const t = getStatusTree();
+  const v1 = document.getElementById("lv1").value;
+  const v2 = document.getElementById("lv2").value;
+  const sel = document.getElementById("lv3");
+  sel.innerHTML = '<option value="">3级</option>';
+  if(t[v1]?.[v2]) Object.keys(t[v1][v2]).forEach(k=>{
+    const o = document.createElement("option");
+    o.value=k; o.textContent=k; sel.appendChild(o);
+  });
+  loadLv4();
+}
+function loadLv4(){
+  const t = getStatusTree();
+  const v1 = document.getElementById("lv1").value;
+  const v2 = document.getElementById("lv2").value;
+  const v3 = document.getElementById("lv3").value;
+  const sel = document.getElementById("lv4");
+  sel.innerHTML = '<option value="">4级</option>';
+  const list = t[v1]?.[v2]?.[v3] || [];
+  list.forEach(k=>{
+    const o = document.createElement("option");
+    o.value=k; o.textContent=k; sel.appendChild(o);
+  });
+}
+
+function renderPeople(){
+  const g = document.getElementById("mainGrid");
+  g.innerHTML = "";
+  getPeople().forEach(name=>{
+    const d = document.createElement("div");
+    d.className = "item";
+    d.textContent = name;
+    d.onclick = ()=>d.classList.toggle("active");
+    g.appendChild(d);
+  });
+}
+
+function renderAll(){
+  renderPeople();
+  loadLv1();
+  renderRecords();
+}
+
+function now(){
+  const d = new Date();
+  return week[d.getDay()] + " " + d.toLocaleString();
+}
+function getRecords(){
+  try{return JSON.parse(localStorage.getItem(STORAGE_KEY))||[]}catch{return[]}
+}
+function setRecords(r){ localStorage.setItem(STORAGE_KEY,JSON.stringify(r)) }
+
+function generate(){
+  const custom = document.getElementById("customInput").value.trim();
+  const a = document.getElementById("lv1").value;
+  const b = document.getElementById("lv2").value;
+  const c = document.getElementById("lv3").value;
+  const d = document.getElementById("lv4").value;
+  const selected = [...document.querySelectorAll(".item.active")].map(x=>x.textContent);
+
+  if(selected.length===0){ alert("请先点选人物再生成"); return; }
+
+  let status;
+  if(custom){
+    status = custom;
+  }else{
+    const parts = [a,b,c,d].filter(Boolean);
+    if(parts.length===0){ alert("请先选择状态或手动输入"); return; }
+    status = parts.join(" - ");
+  }
+
+  const list = getRecords();
+  list.unshift({
+    time: now(),
+    status: status,
+    people: selected.map(name=>({name, active:true}))
+  });
+  setRecords(list);
+
+  document.getElementById("customInput").value = "";
+  clearSelected();
+  loadLv1();
+  renderRecords();
+  alert("已生成");
+}
+
+function clearSelected(){
+  document.querySelectorAll(".item.active").forEach(x=>x.classList.remove("active"));
+}
+
+// ====================== 复制功能：只复制绿色人名 + 通知格式 + 预览 ======================
+function copyRecord(rec){
+  // 只保留 active=true（绿色）的人名
+  const activeNames = rec.people.filter(o => o.active).map(o => o.name).join("、");
+  // 格式：通知 + 人名 + 内容
+  const copyText = `通知：${activeNames}，${rec.status}`;
+  
+  navigator.clipboard.writeText(copyText);
+  
+  // 显示预览
+  document.getElementById("previewText").innerText = copyText;
+  document.getElementById("previewModal").style.display = "flex";
+}
+
+function closePreview(){
+  document.getElementById("previewModal").style.display = "none";
+}
+
+function renderRecords(){
+  const list = getRecords();
+  const r1 = document.getElementById("recentRecords");
+  const r2 = document.getElementById("allRecords");
+
+  function makeItem(rec, index){
+    const card = document.createElement("div");
+    card.className = "record-card";
+
+    const st = document.createElement("div");
+    st.className = "record-status";
+    st.textContent = "状态："+rec.status;
+
+    const tm = document.createElement("div");
+    tm.className = "record-time";
+    tm.textContent = rec.time;
+
+    const peopleWrap = document.createElement("div");
+    peopleWrap.className = "record-people";
+
+    rec.people.forEach((obj, i)=>{
+      const span = document.createElement("span");
+      span.className = "pill " + (obj.active ? "active" : "inactive");
+      span.textContent = obj.name;
+      span.onclick = ()=>{
+        if(!confirm("确定切换该人物状态？")) return;
+        rec.people[i].active = !rec.people[i].active;
+        const all = getRecords();
+        all[index] = rec;
+        setRecords(all);
+        renderRecords();
+      };
+      peopleWrap.appendChild(span);
+    });
+
+    const btns = document.createElement("div");
+    btns.className = "record-btns";
+
+    const cp = document.createElement("button");
+    cp.className = "gray";
+    cp.textContent = "复制";
+    cp.onclick = () => copyRecord(rec);
+
+    const del = document.createElement("button");
+    del.className = "red";
+    del.textContent = "删除";
+    del.onclick = ()=>{
+      if(confirm("确定删除？")){
+        const data = getRecords();
+        data.splice(index,1);
+        setRecords(data);
+        renderRecords();
+      }
+    };
+
+    btns.append(cp, del);
+    card.append(st, tm, peopleWrap, btns);
+    return card;
+  }
+
+  r1.innerHTML = "";
+  list.slice(0,5).forEach((rec,i)=>r1.appendChild(makeItem(rec,i)));
+  r2.innerHTML = "";
+  list.forEach((rec,i)=>r2.appendChild(makeItem(rec,i)));
+}
+
+function clearAllRecords(){
+  if(confirm("确定清空全部记录？")){
+    localStorage.removeItem(STORAGE_KEY);
+    renderRecords();
+  }
+}
+
+function showAllPage(){
+  document.querySelector(".main-page").style.display = "none";
+  document.querySelector(".all-page").style.display = "block";
+}
+function showMainPage(){
+  document.querySelector(".all-page").style.display = "none";
+  document.querySelector(".main-page").style.display = "block";
+}
+
+renderAll();
+</script>
+</body>
+</html>
