@@ -16,7 +16,20 @@ body{margin:0;padding:12px;background:#f6f6f6;font-family:system-ui,sans-serif;m
 .pill.inactive{background:#fff;color:#000}
 
 .level-row{display:flex;gap:6px;margin-top:8px}
-.level-row select{flex:1;padding:12px;border-radius:8px;border:1px solid #ccc;font-size:14px}
+.level-row select{
+  flex:1;padding:12px;border-radius:8px;border:1px solid #ccc;font-size:14px;
+  color: #333; /* 正常文字颜色 */
+}
+/* 新增：禁用状态的下拉菜单样式 */
+.level-row select:disabled{
+  background: #f9f9f9;
+  color: #999; /* 灰色提示文字 */
+  cursor: not-allowed;
+}
+/* 新增：下拉菜单的占位提示项样式（不可选中） */
+.select-placeholder{
+  color: #999;
+}
 
 input,select,button{width:100%;padding:12px;border-radius:8px;border:1px solid #ccc;font-size:15px;margin:0}
 input::placeholder{color:#999}
@@ -51,14 +64,15 @@ button.red{background:#f44}
 <div class="main-page">
   <div class="title">快速记事本·状态标记</div>
   <div class="btn-group">
-    <button class="gray" onclick="openPeopleEdit()">编辑名单</button>
-    <button class="gray" onclick="openStatusEdit()">编辑状态</button>
+    <button class="gray" onclick="openPeopleEdit()">自定名单</button>
+    <button class="gray" onclick="openStatusEdit()">自定选项</button>
   </div>
 
   <div class="main-grid" id="mainGrid"></div>
 
   <input id="customInput" placeholder="仅手动输入" autocomplete="off">
   <div class="level-row">
+    <!-- 保留原ID，修改逻辑即可 -->
     <select id="lv1" onchange="loadLv2()"></select>
     <select id="lv2" onchange="loadLv3()"></select>
     <select id="lv3" onchange="loadLv4()"></select>
@@ -171,51 +185,141 @@ function saveStatus(){
   closeStatusModal(); renderAll();
 }
 
+// ========== 核心修改1：重构下拉菜单加载逻辑 ==========
 function loadLv1(){
   const t = getStatusTree();
   const sel = document.getElementById("lv1");
-  sel.innerHTML = '<option value="">选项1</option>';
+  // 1. 清空原有选项
+  sel.innerHTML = "";
+  // 2. 添加不可选中的占位提示项（灰色）
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = "选项1";
+  placeholder.className = "select-placeholder";
+  placeholder.disabled = true; // 不可选中
+  placeholder.selected = true; // 默认选中（仅显示，不可选）
+  sel.appendChild(placeholder);
+  // 3. 加载实际选项（无提示项）
   Object.keys(t).forEach(k=>{
     const o = document.createElement("option");
     o.value=k; o.textContent=k; sel.appendChild(o);
   });
-  loadLv2();
+  // 4. 初始化下级菜单（锁定）
+  loadLv2(true);
 }
-function loadLv2(){
+
+function loadLv2(init = false){
   const t = getStatusTree();
   const v1 = document.getElementById("lv1").value;
   const sel = document.getElementById("lv2");
-  sel.innerHTML = '<option value="">选项2</option>';
-  if(t[v1]) Object.keys(t[v1]).forEach(k=>{
-    const o = document.createElement("option");
-    o.value=k; o.textContent=k; sel.appendChild(o);
-  });
+  // 清空原有选项
+  sel.innerHTML = "";
+  
+  // 判断上级是否选择：未选择则锁定+提示
+  if(!v1 && !init){
+    alert("请从选项1开始，按顺序指定选项");
+  }
+  if(!v1){
+    // 锁定下级，添加占位提示
+    sel.disabled = true;
+    const placeholder = document.createElement("option");
+    placeholder.value = "";
+    placeholder.textContent = "选项2";
+    placeholder.className = "select-placeholder";
+    placeholder.selected = true;
+    sel.appendChild(placeholder);
+  }else{
+    // 解锁，加载实际选项
+    sel.disabled = false;
+    const placeholder = document.createElement("option");
+    placeholder.value = "";
+    placeholder.textContent = "选项2";
+    placeholder.className = "select-placeholder";
+    placeholder.disabled = true;
+    placeholder.selected = true;
+    sel.appendChild(placeholder);
+    // 加载实际选项
+    if(t[v1]) Object.keys(t[v1]).forEach(k=>{
+      const o = document.createElement("option");
+      o.value=k; o.textContent=k; sel.appendChild(o);
+    });
+  }
+  // 初始化下下级
   loadLv3();
 }
+
 function loadLv3(){
   const t = getStatusTree();
   const v1 = document.getElementById("lv1").value;
   const v2 = document.getElementById("lv2").value;
   const sel = document.getElementById("lv3");
-  sel.innerHTML = '<option value="">选项3</option>';
-  if(t[v1]?.[v2]) Object.keys(t[v1][v2]).forEach(k=>{
-    const o = document.createElement("option");
-    o.value=k; o.textContent=k; sel.appendChild(o);
-  });
+  // 清空原有选项
+  sel.innerHTML = "";
+  
+  // 上级未选择则锁定+提示
+  if(!v2){
+    sel.disabled = true;
+    const placeholder = document.createElement("option");
+    placeholder.value = "";
+    placeholder.textContent = "选项3";
+    placeholder.className = "select-placeholder";
+    placeholder.selected = true;
+    sel.appendChild(placeholder);
+  }else{
+    // 解锁，加载实际选项
+    sel.disabled = false;
+    const placeholder = document.createElement("option");
+    placeholder.value = "";
+    placeholder.textContent = "选项3";
+    placeholder.className = "select-placeholder";
+    placeholder.disabled = true;
+    placeholder.selected = true;
+    sel.appendChild(placeholder);
+    // 加载实际选项
+    if(t[v1]?.[v2]) Object.keys(t[v1][v2]).forEach(k=>{
+      const o = document.createElement("option");
+      o.value=k; o.textContent=k; sel.appendChild(o);
+    });
+  }
+  // 初始化第四级
   loadLv4();
 }
+
 function loadLv4(){
   const t = getStatusTree();
   const v1 = document.getElementById("lv1").value;
   const v2 = document.getElementById("lv2").value;
   const v3 = document.getElementById("lv3").value;
   const sel = document.getElementById("lv4");
-  sel.innerHTML = '<option value="">选项4</option>';
-  const list = t[v1]?.[v2]?.[v3] || [];
-  list.forEach(k=>{
-    const o = document.createElement("option");
-    o.value=k; o.textContent=k; sel.appendChild(o);
-  });
+  // 清空原有选项
+  sel.innerHTML = "";
+  
+  // 上级未选择则锁定
+  if(!v3){
+    sel.disabled = true;
+    const placeholder = document.createElement("option");
+    placeholder.value = "";
+    placeholder.textContent = "选项4";
+    placeholder.className = "select-placeholder";
+    placeholder.selected = true;
+    sel.appendChild(placeholder);
+  }else{
+    // 解锁，加载实际选项
+    sel.disabled = false;
+    const placeholder = document.createElement("option");
+    placeholder.value = "";
+    placeholder.textContent = "选项4";
+    placeholder.className = "select-placeholder";
+    placeholder.disabled = true;
+    placeholder.selected = true;
+    sel.appendChild(placeholder);
+    // 加载实际选项
+    const list = t[v1]?.[v2]?.[v3] || [];
+    list.forEach(k=>{
+      const o = document.createElement("option");
+      o.value=k; o.textContent=k; sel.appendChild(o);
+    });
+  }
 }
 
 function renderPeople(){
@@ -388,4 +492,3 @@ renderAll();
 </body>
 
 </html>
-
