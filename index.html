@@ -14,22 +14,27 @@ body{margin:0;padding:12px;background:#f6f6f6;font-family:system-ui,sans-serif;m
 .pill{display:inline-block;padding:4px 8px;margin:2px;border-radius:6px;border:1px solid #ccc;font-size:12px;cursor:pointer}
 .pill.active{background:#4CAF50;color:#fff}
 .pill.inactive{background:#fff;color:#000}
+.pill.leader{background:#fff;color:#2196F3;border:1px solid #2196F3}
 
 .level-row{display:flex;gap:6px;margin-top:8px}
 .level-row select{
   flex:1;padding:12px;border-radius:8px;border:1px solid #ccc;font-size:14px;
-  color: #333; /* 正常文字颜色 */
+  color: #333;
 }
-/* 新增：禁用状态的下拉菜单样式 */
 .level-row select:disabled{
   background: #f9f9f9;
-  color: #999; /* 灰色提示文字 */
+  color: #999;
   cursor: not-allowed;
 }
-/* 新增：下拉菜单的占位提示项样式（不可选中） */
 .select-placeholder{
   color: #999;
 }
+
+.input-row{
+  display:flex;gap:6px;margin:8px 0
+}
+.input-row input{flex:2;}
+.input-row select{flex:1;}
 
 input,select,button{width:100%;padding:12px;border-radius:8px;border:1px solid #ccc;font-size:15px;margin:0}
 input::placeholder{color:#999}
@@ -43,7 +48,7 @@ button.red{background:#f44}
 .record-status{font-size:16px;font-weight:bold;color:#2196F3;margin-bottom:4px}
 .record-time{font-size:13px;color:#666;margin-bottom:8px}
 .record-people{margin-bottom:8px}
-/* 修改：按钮行三等分 */
+.record-note{margin:8px 0;padding:8px;background:#f9f9f9;border-radius:6px;font-size:14px;white-space:pre-line}
 .record-btns{display:flex;gap:4px}
 .record-btns button{flex:1;padding:4px 6px;font-size:12px;width:auto}
 
@@ -52,18 +57,19 @@ button.red{background:#f44}
 .modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:none;justify-content:center;align-items:center;padding:10px}
 .modal-content{background:#fff;border-radius:12px;width:100%;max-width:400px;padding:16px}
 .modal-title{font-size:16px;font-weight:bold;margin-bottom:10px}
-.modal-textarea{width:100%;height:260px;padding:10;border-radius:6px;border:1px solid #ccc;font-size:14px}
+.modal-textarea{width:100%;height:180px;padding:10px;border-radius:6px;border:1px solid #ccc;font-size:14px;margin-bottom:8px}
 
-/* 复制预览弹窗样式 */
 #previewModal {position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);display:none;justify-content:center;align-items:center;padding:10px;z-index:9999}
 #previewCard {background:#fff;border-radius:12px;max-width:360px;width:100%;padding:20px}
 #previewText {white-space:pre-line;background:#f4f4f4;padding:10px;border-radius:6px;margin:10px 0;font-size:14px}
 
-/* 新增：编辑名单弹窗样式 */
 #editPeopleModal {position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:none;justify-content:center;align-items:center;padding:10px;z-index:9998}
 #editPeopleContent {background:#fff;border-radius:12px;max-width:380px;width:100%;padding:20px}
 #editPeopleGrid {display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:15px 0;max-height:300px;overflow-y:auto;padding:8px;border:1px solid #eee;border-radius:8px}
 #editPeopleGrid .item {font-size:13px;padding:10px 4px}
+
+/* 备注弹窗 */
+#noteModal {position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:none;justify-content:center;align-items:center;padding:10px;z-index:9997}
 </style>
 
 <body>
@@ -77,9 +83,14 @@ button.red{background:#f44}
 
   <div class="main-grid" id="mainGrid"></div>
 
-  <input id="customInput" placeholder="仅手动输入" autocomplete="off">
+  <div class="input-row">
+    <input id="customInput" placeholder="仅手动输入" autocomplete="off">
+    <select id="leaderSelect">
+      <option value="" disabled selected class="select-placeholder">请指定负责人</option>
+    </select>
+  </div>
+
   <div class="level-row">
-    <!-- 保留原ID，修改逻辑即可 -->
     <select id="lv1" onchange="loadLv2()"></select>
     <select id="lv2" onchange="loadLv3()"></select>
     <select id="lv3" onchange="loadLv4()"></select>
@@ -103,16 +114,16 @@ button.red{background:#f44}
   <div id="allRecords"></div>
 </div>
 
-<!-- 复制预览弹窗 -->
+<!-- 复制预览 -->
 <div id="previewModal">
   <div id="previewCard">
     <div style="font-weight:bold;font-size:16px;margin-bottom:8px">复制成功</div>
     <div id="previewText"></div>
-    <button style="margin-top:12px;background:#2196F5;color:white;border:none;padding:10px;border-radius:8px;width:100%" onclick="closePreview()">确定</button>
+    <button style="margin-top:12px" onclick="closePreview()">确定</button>
   </div>
 </div>
 
-<!-- 编辑名单弹窗（新增） -->
+<!-- 追加编辑 -->
 <div id="editPeopleModal">
   <div id="editPeopleContent">
     <div class="modal-title">重新选择名单</div>
@@ -124,17 +135,35 @@ button.red{background:#f44}
   </div>
 </div>
 
+<!-- 备注弹窗 -->
+<div id="noteModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-title">编辑备注</div>
+    <textarea class="modal-textarea" id="noteInput"></textarea>
+    <div class="btn-group">
+      <button onclick="saveNote()">保存</button>
+      <button class="gray" onclick="closeNoteModal()">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- 人员+负责人编辑 -->
 <div id="peopleModal" class="modal">
   <div class="modal-content">
-    <div class="modal-title">编辑名单（一行一个）</div>
+    <div class="modal-title">编辑全部名单（一行一个）</div>
     <textarea class="modal-textarea" id="peopleText"></textarea>
+
+    <div class="modal-title">编辑负责人名单（一行一个）</div>
+    <textarea class="modal-textarea" id="leaderText"></textarea>
+
     <div class="btn-group">
-      <button onclick="savePeople()">保存</button>
+      <button onclick="savePeopleAndLeader()">保存</button>
       <button class="gray" onclick="closePeopleModal()">取消</button>
     </div>
   </div>
 </div>
 
+<!-- 状态编辑 -->
 <div id="statusModal" class="modal">
   <div class="modal-content">
     <div class="modal-title">4级状态编辑（格式：1>2>3>4）</div>
@@ -149,12 +178,15 @@ button.red{background:#f44}
 <script>
 const STORAGE_KEY = 'jichibang_records';
 const PEOPLE_KEY = 'cfg_people';
+const LEADER_KEY = 'cfg_leader';
 const STATUS_KEY = 'cfg_status4';
 const week = ["周日","周一","周二","周三","周四","周五","周六"];
 
-// 新增：存储当前编辑的记录索引
 let currentEditIndex = -1;
+let currentRecordPeopleMap = {};
+let currentNoteIndex = -1;
 
+// 人员
 function getPeopleText(){
   return localStorage.getItem(PEOPLE_KEY) || "人1\n人2\n人3\n人4\n人5";
 }
@@ -163,6 +195,31 @@ function getPeople(){
   return getPeopleText().split("\n").map(x=>x.trim()).filter(Boolean);
 }
 
+// 负责人
+function getLeaderText(){
+  return localStorage.getItem(LEADER_KEY) || "组长A\n组长B\n组长C";
+}
+function setLeaderText(t){ localStorage.setItem(LEADER_KEY,t) }
+function getLeaders(){
+  return getLeaderText().split("\n").map(x=>x.trim()).filter(Boolean);
+}
+
+function loadLeaderSelect(){
+  const sel = document.getElementById("leaderSelect");
+  sel.innerHTML = "";
+  const ph = document.createElement("option");
+  ph.value = ""; ph.disabled = true; ph.selected = true;
+  ph.textContent = "请指定负责人";
+  ph.className = "select-placeholder";
+  sel.appendChild(ph);
+  getLeaders().forEach(name=>{
+    const o = document.createElement("option");
+    o.value=name; o.textContent=name;
+    sel.appendChild(o);
+  });
+}
+
+// 状态树
 function getStatusText(){
   return localStorage.getItem(STATUS_KEY) || `出勤>上午>第一节>正常
 出勤>上午>第一节>迟到
@@ -174,29 +231,32 @@ function getStatusText(){
 function setStatusText(t){ localStorage.setItem(STATUS_KEY,t) }
 
 function getStatusTree(){
-  const lines = getStatusText().split("\n").map(x=>x.trim()).filter(Boolean);
   const tree = {};
-  lines.forEach(line=>{
+  getStatusText().split("\n").map(x=>x.trim()).filter(Boolean).forEach(line=>{
     const [a,b,c,d] = line.split(">").map(x=>x.trim()).filter(Boolean);
     if(!a) return;
-    if(!tree[a]) tree[a] = {};
-    if(!tree[a][b]) tree[a][b] = {};
-    if(!tree[a][b][c]) tree[a][b][c] = [];
+    if(!tree[a]) tree[a]={};
+    if(!tree[a][b]) tree[a][b]={};
+    if(!tree[a][b][c]) tree[a][b][c]=[];
     if(d && !tree[a][b][c].includes(d)) tree[a][b][c].push(d);
   });
   return tree;
 }
 
+// 人员+负责人保存
 function openPeopleEdit(){
   document.getElementById("peopleText").value = getPeopleText();
+  document.getElementById("leaderText").value = getLeaderText();
   document.getElementById("peopleModal").style.display = "flex";
 }
 function closePeopleModal(){ document.getElementById("peopleModal").style.display = "none"; }
-function savePeople(){
+function savePeopleAndLeader(){
   setPeopleText(document.getElementById("peopleText").value);
+  setLeaderText(document.getElementById("leaderText").value);
   closePeopleModal(); renderAll();
 }
 
+// 状态
 function openStatusEdit(){
   document.getElementById("statusText").value = getStatusText();
   document.getElementById("statusModal").style.display = "flex";
@@ -207,198 +267,129 @@ function saveStatus(){
   closeStatusModal(); renderAll();
 }
 
-// ========== 核心修改1：重构下拉菜单加载逻辑 ==========
+// 四级联动
 function loadLv1(){
-  const t = getStatusTree();
-  const sel = document.getElementById("lv1");
-  // 1. 清空原有选项
-  sel.innerHTML = "";
-  // 2. 添加不可选中的占位提示项（灰色）
-  const placeholder = document.createElement("option");
-  placeholder.value = "";
-  placeholder.textContent = "选项1";
-  placeholder.className = "select-placeholder";
-  placeholder.disabled = true; // 不可选中
-  placeholder.selected = true; // 默认选中（仅显示，不可选）
-  sel.appendChild(placeholder);
-  // 3. 加载实际选项（无提示项）
+  const t=getStatusTree();
+  const sel=document.getElementById("lv1");
+  sel.innerHTML="";
+  const ph=document.createElement("option");
+  ph.value="";ph.disabled=true;ph.selected=true;ph.textContent="选项1";ph.className="select-placeholder";
+  sel.appendChild(ph);
   Object.keys(t).forEach(k=>{
-    const o = document.createElement("option");
-    o.value=k; o.textContent=k; sel.appendChild(o);
+    const o=document.createElement("option");o.value=k;o.textContent=k;sel.appendChild(o);
   });
-  // 4. 初始化下级菜单（锁定）
   loadLv2(true);
 }
-
-function loadLv2(init = false){
-  const t = getStatusTree();
-  const v1 = document.getElementById("lv1").value;
-  const sel = document.getElementById("lv2");
-  // 清空原有选项
-  sel.innerHTML = "";
-  
-  // 判断上级是否选择：未选择则锁定+提示
-  if(!v1 && !init){
-    alert("请从选项1开始，按顺序指定选项");
-  }
+function loadLv2(init=false){
+  const t=getStatusTree();
+  const v1=document.getElementById("lv1").value;
+  const sel=document.getElementById("lv2");
+  sel.innerHTML="";
+  if(!v1&&!init){alert("请从选项1开始，按顺序指定选项");}
   if(!v1){
-    // 锁定下级，添加占位提示
-    sel.disabled = true;
-    const placeholder = document.createElement("option");
-    placeholder.value = "";
-    placeholder.textContent = "选项2";
-    placeholder.className = "select-placeholder";
-    placeholder.selected = true;
-    sel.appendChild(placeholder);
+    sel.disabled=true;
+    const ph=document.createElement("option");ph.value="";ph.textContent="选项2";ph.className="select-placeholder";ph.selected=true;
+    sel.appendChild(ph);
   }else{
-    // 解锁，加载实际选项
-    sel.disabled = false;
-    const placeholder = document.createElement("option");
-    placeholder.value = "";
-    placeholder.textContent = "选项2";
-    placeholder.className = "select-placeholder";
-    placeholder.disabled = true;
-    placeholder.selected = true;
-    sel.appendChild(placeholder);
-    // 加载实际选项
-    if(t[v1]) Object.keys(t[v1]).forEach(k=>{
-      const o = document.createElement("option");
-      o.value=k; o.textContent=k; sel.appendChild(o);
-    });
+    sel.disabled=false;
+    const ph=document.createElement("option");ph.value="";ph.disabled=true;ph.selected=true;ph.textContent="选项2";ph.className="select-placeholder";
+    sel.appendChild(ph);
+    if(t[v1])Object.keys(t[v1]).forEach(k=>{const o=document.createElement("option");o.value=k;o.textContent=k;sel.appendChild(o);});
   }
-  // 初始化下下级
   loadLv3();
 }
-
 function loadLv3(){
-  const t = getStatusTree();
-  const v1 = document.getElementById("lv1").value;
-  const v2 = document.getElementById("lv2").value;
-  const sel = document.getElementById("lv3");
-  // 清空原有选项
-  sel.innerHTML = "";
-  
-  // 上级未选择则锁定+提示
+  const t=getStatusTree();
+  const v1=document.getElementById("lv1").value;
+  const v2=document.getElementById("lv2").value;
+  const sel=document.getElementById("lv3");
+  sel.innerHTML="";
   if(!v2){
-    sel.disabled = true;
-    const placeholder = document.createElement("option");
-    placeholder.value = "";
-    placeholder.textContent = "选项3";
-    placeholder.className = "select-placeholder";
-    placeholder.selected = true;
-    sel.appendChild(placeholder);
+    sel.disabled=true;
+    const ph=document.createElement("option");ph.value="";ph.textContent="选项3";ph.className="select-placeholder";ph.selected=true;
+    sel.appendChild(ph);
   }else{
-    // 解锁，加载实际选项
-    sel.disabled = false;
-    const placeholder = document.createElement("option");
-    placeholder.value = "";
-    placeholder.textContent = "选项3";
-    placeholder.className = "select-placeholder";
-    placeholder.disabled = true;
-    placeholder.selected = true;
-    sel.appendChild(placeholder);
-    // 加载实际选项
-    if(t[v1]?.[v2]) Object.keys(t[v1][v2]).forEach(k=>{
-      const o = document.createElement("option");
-      o.value=k; o.textContent=k; sel.appendChild(o);
-    });
+    sel.disabled=false;
+    const ph=document.createElement("option");ph.value="";ph.disabled=true;ph.selected=true;ph.textContent="选项3";ph.className="select-placeholder";
+    sel.appendChild(ph);
+    if(t[v1]?.[v2])Object.keys(t[v1][v2]).forEach(k=>{const o=document.createElement("option");o.value=k;o.textContent=k;sel.appendChild(o);});
   }
-  // 初始化第四级
   loadLv4();
 }
-
 function loadLv4(){
-  const t = getStatusTree();
-  const v1 = document.getElementById("lv1").value;
-  const v2 = document.getElementById("lv2").value;
-  const v3 = document.getElementById("lv3").value;
-  const sel = document.getElementById("lv4");
-  // 清空原有选项
-  sel.innerHTML = "";
-  
-  // 上级未选择则锁定
+  const t=getStatusTree();
+  const v1=document.getElementById("lv1").value;
+  const v2=document.getElementById("lv2").value;
+  const v3=document.getElementById("lv3").value;
+  const sel=document.getElementById("lv4");
+  sel.innerHTML="";
   if(!v3){
-    sel.disabled = true;
-    const placeholder = document.createElement("option");
-    placeholder.value = "";
-    placeholder.textContent = "选项4";
-    placeholder.className = "select-placeholder";
-    placeholder.selected = true;
-    sel.appendChild(placeholder);
+    sel.disabled=true;
+    const ph=document.createElement("option");ph.value="";ph.textContent="选项4";ph.className="select-placeholder";ph.selected=true;
+    sel.appendChild(ph);
   }else{
-    // 解锁，加载实际选项
-    sel.disabled = false;
-    const placeholder = document.createElement("option");
-    placeholder.value = "";
-    placeholder.textContent = "选项4";
-    placeholder.className = "select-placeholder";
-    placeholder.disabled = true;
-    placeholder.selected = true;
-    sel.appendChild(placeholder);
-    // 加载实际选项
-    const list = t[v1]?.[v2]?.[v3] || [];
-    list.forEach(k=>{
-      const o = document.createElement("option");
-      o.value=k; o.textContent=k; sel.appendChild(o);
-    });
+    sel.disabled=false;
+    const ph=document.createElement("option");ph.value="";ph.disabled=true;ph.selected=true;ph.textContent="选项4";ph.className="select-placeholder";
+    sel.appendChild(ph);
+    const list=t[v1]?.[v2]?.[v3]||[];
+    list.forEach(k=>{const o=document.createElement("option");o.value=k;o.textContent=k;sel.appendChild(o);});
   }
 }
 
 function renderPeople(){
-  const g = document.getElementById("mainGrid");
-  g.innerHTML = "";
+  const g=document.getElementById("mainGrid");
+  g.innerHTML="";
   getPeople().forEach(name=>{
-    const d = document.createElement("div");
-    d.className = "item";
-    d.textContent = name;
-    d.onclick = ()=>d.classList.toggle("active");
+    const d=document.createElement("div");
+    d.className="item";
+    d.textContent=name;
+    d.onclick=()=>d.classList.toggle("active");
     g.appendChild(d);
   });
 }
 
-function renderAll(){
-  renderPeople();
-  loadLv1();
-  renderRecords();
-}
-
 function now(){
-  const d = new Date();
-  return week[d.getDay()] + " " + d.toLocaleString();
+  const d=new Date();
+  return week[d.getDay()]+" "+d.toLocaleString();
 }
 function getRecords(){
   try{return JSON.parse(localStorage.getItem(STORAGE_KEY))||[]}catch{return[]}
 }
-function setRecords(r){ localStorage.setItem(STORAGE_KEY,JSON.stringify(r)) }
+function setRecords(r){localStorage.setItem(STORAGE_KEY,JSON.stringify(r))}
 
+// 生成
 function generate(){
-  const custom = document.getElementById("customInput").value.trim();
-  const a = document.getElementById("lv1").value;
-  const b = document.getElementById("lv2").value;
-  const c = document.getElementById("lv3").value;
-  const d = document.getElementById("lv4").value;
-  const selected = [...document.querySelectorAll(".item.active")].map(x=>x.textContent);
+  const custom=document.getElementById("customInput").value.trim();
+  const leader=document.getElementById("leaderSelect").value;
+  const a=document.getElementById("lv1").value;
+  const b=document.getElementById("lv2").value;
+  const c=document.getElementById("lv3").value;
+  const d=document.getElementById("lv4").value;
+  const selected=[...document.querySelectorAll(".item.active")].map(x=>x.textContent);
 
-  if(selected.length===0){ alert("请先点选人物再生成"); return; }
+  if(selected.length===0){alert("请先点选人物再生成");return;}
 
   let status;
   if(custom){
-    status = custom;
+    status=custom;
   }else{
-    const parts = [a,b,c,d].filter(Boolean);
-    if(parts.length===0){ alert("请先选择状态或手动输入"); return; }
-    status = parts.join(" - ");
+    const parts=[a,b,c,d].filter(Boolean);
+    if(parts.length===0){alert("请先选择状态或手动输入");return;}
+    status=parts.join(" - ");
   }
 
-  const list = getRecords();
+  const list=getRecords();
   list.unshift({
-    time: now(),
-    status: status,
-    people: selected.map(name=>({name, active:true}))
+    time:now(),
+    status:status,
+    people:selected.map(name=>({name,active:true,type:"normal"})),
+    leader:leader,
+    note:""
   });
   setRecords(list);
 
-  document.getElementById("customInput").value = "";
+  document.getElementById("customInput").value="";
+  document.getElementById("leaderSelect").selectedIndex=0;
   clearSelected();
   loadLv1();
   renderRecords();
@@ -409,144 +400,165 @@ function clearSelected(){
   document.querySelectorAll(".item.active").forEach(x=>x.classList.remove("active"));
 }
 
-// ====================== 复制功能：只复制绿色人名 + 通知格式 + 预览 ======================
+// 复制
 function copyRecord(rec){
-  // 只保留 active=true（绿色）的人名
-  const activeNames = rec.people.filter(o => o.active).map(o => o.name).join("、");
-  // 格式：通知 + 人名 + 内容
-  const copyText = `通知：${activeNames}，${rec.status}`;
-  
+  const activeNames=rec.people.filter(o=>o.active).map(o=>o.name).join("、");
+  const leaderText=rec.leader?" 负责人："+rec.leader:"";
+  const copyText=`通知：${activeNames}，${rec.status}${leaderText}`;
   navigator.clipboard.writeText(copyText);
-  
-  // 显示预览
-  document.getElementById("previewText").innerText = copyText;
-  document.getElementById("previewModal").style.display = "flex";
+  document.getElementById("previewText").innerText=copyText;
+  document.getElementById("previewModal").style.display="flex";
 }
+function closePreview(){document.getElementById("previewModal").style.display="none";}
 
-function closePreview(){
-  document.getElementById("previewModal").style.display = "none";
-}
-
-// ====================== 新增：编辑名单功能 ======================
+// 追加人员
 function openEditPeopleModal(index){
-  // 存储当前编辑的记录索引
   currentEditIndex = index;
   const records = getRecords();
-  const targetRecord = records[index];
+  const target = records[index];
   
-  // 获取当前记录已选中的人名
-  const selectedNames = targetRecord.people.map(p => p.name);
-  
-  // 渲染编辑弹窗的名单
+  currentRecordPeopleMap = {};
+  target.people.forEach(obj => {
+    currentRecordPeopleMap[obj.name] = obj.active;
+  });
+
   const grid = document.getElementById("editPeopleGrid");
   grid.innerHTML = "";
-  getPeople().forEach(name=>{
+  getPeople().forEach(name => {
     const item = document.createElement("div");
-    item.className = `item ${selectedNames.includes(name) ? 'active' : ''}`;
+    item.className = "item";
+    if (currentRecordPeopleMap.hasOwnProperty(name)) {
+      item.classList.add("active");
+    }
     item.textContent = name;
     item.onclick = () => item.classList.toggle("active");
     grid.appendChild(item);
   });
-  
-  // 显示弹窗
   document.getElementById("editPeopleModal").style.display = "flex";
 }
-
 function closeEditPeopleModal(){
-  // 重置编辑索引并关闭弹窗
   currentEditIndex = -1;
+  currentRecordPeopleMap = {};
   document.getElementById("editPeopleModal").style.display = "none";
 }
-
 function saveEditedPeople(){
-  if(currentEditIndex === -1) return;
-  
-  // 获取弹窗中选中的人名
-  const selectedItems = [...document.querySelectorAll("#editPeopleGrid .item.active")];
-  const selectedNames = selectedItems.map(item => item.textContent);
-  
-  // 更新记录
+  if (currentEditIndex === -1) return;
+  const selectedNames = [...document.querySelectorAll("#editPeopleGrid .item.active")]
+    .map(x => x.textContent.trim()).filter(Boolean);
   const records = getRecords();
-  // 重新构建people数组，保持active状态为true
-  records[currentEditIndex].people = selectedNames.map(name => ({name, active: true}));
+  const target = records[currentEditIndex];
+  const newPeople = selectedNames.map(name => ({
+    name: name,
+    active: currentRecordPeopleMap[name] ?? true,
+    type: "normal"
+  }));
+  target.people = newPeople;
   setRecords(records);
-  
-  // 关闭弹窗并重新渲染记录
   closeEditPeopleModal();
   renderRecords();
   alert("名单修改成功！");
 }
 
+// ====================== 备注功能 ======================
+function openNoteModal(index){
+  currentNoteIndex = index;
+  const records = getRecords();
+  document.getElementById("noteInput").value = records[index].note || "";
+  document.getElementById("noteModal").style.display = "flex";
+}
+function closeNoteModal(){
+  currentNoteIndex = -1;
+  document.getElementById("noteModal").style.display = "none";
+}
+function saveNote(){
+  if(currentNoteIndex === -1) return;
+  const records = getRecords();
+  records[currentNoteIndex].note = document.getElementById("noteInput").value.trim();
+  setRecords(records);
+  closeNoteModal();
+  renderRecords();
+}
+
+// 渲染记录
 function renderRecords(){
-  const list = getRecords();
-  const r1 = document.getElementById("recentRecords");
-  const r2 = document.getElementById("allRecords");
+  const list=getRecords();
+  const r1=document.getElementById("recentRecords");
+  const r2=document.getElementById("allRecords");
 
-  function makeItem(rec, index){
-    const card = document.createElement("div");
-    card.className = "record-card";
+  function makeItem(rec,index){
+    const card=document.createElement("div");
+    card.className="record-card";
 
-    const st = document.createElement("div");
-    st.className = "record-status";
-    st.textContent = "状态："+rec.status;
+    const st=document.createElement("div");
+    st.className="record-status";
+    st.textContent="状态："+rec.status;
 
-    const tm = document.createElement("div");
-    tm.className = "record-time";
-    tm.textContent = rec.time;
+    const tm=document.createElement("div");
+    tm.className="record-time";
+    tm.textContent=rec.time;
 
-    const peopleWrap = document.createElement("div");
-    peopleWrap.className = "record-people";
-
-    rec.people.forEach((obj, i)=>{
-      const span = document.createElement("span");
-      span.className = "pill " + (obj.active ? "active" : "inactive");
-      span.textContent = obj.name;
-      span.onclick = ()=>{
-        if(!confirm("确定切换该人物状态？")) return;
-        rec.people[i].active = !rec.people[i].active;
-        const all = getRecords();
-        all[index] = rec;
-        setRecords(all);
-        renderRecords();
+    const pw=document.createElement("div");
+    pw.className="record-people";
+    rec.people.forEach((obj,i)=>{
+      const s=document.createElement("span");
+      s.className="pill "+(obj.active?"active":"inactive");
+      s.textContent=obj.name;
+      s.onclick=()=>{
+        if(!confirm("确定切换该人物状态？"))return;
+        rec.people[i].active=!rec.people[i].active;
+        const all=getRecords();all[index]=rec;setRecords(all);renderRecords();
       };
-      peopleWrap.appendChild(span);
+      pw.appendChild(s);
     });
+    if(rec.leader){
+      const sp=document.createElement("span");
+      sp.className="pill leader";
+      sp.textContent=rec.leader;
+      pw.appendChild(sp);
+    }
 
-    const btns = document.createElement("div");
-    btns.className = "record-btns";
+    // 备注显示
+    if(rec.note){
+      const noteDiv = document.createElement("div");
+      noteDiv.className = "record-note";
+      noteDiv.textContent = "备注：" + rec.note;
+      card.append(st,tm,pw,noteDiv);
+    }else{
+      card.append(st,tm,pw);
+    }
 
-    // 新增：追加/编辑按钮
-    const editBtn = document.createElement("button");
-    editBtn.className = "gray";
-    editBtn.textContent = "追加";
-    editBtn.onclick = () => openEditPeopleModal(index);
+    // 4个按钮：追加、复制、备注、删除
+    const btns=document.createElement("div");
+    btns.className="record-btns";
 
-    const cp = document.createElement("button");
-    cp.className = "gray";
-    cp.textContent = "复制";
-    cp.onclick = () => copyRecord(rec);
+    const addBtn=document.createElement("button");
+    addBtn.className="gray"; addBtn.textContent="追加";
+    addBtn.onclick=()=>openEditPeopleModal(index);
 
-    const del = document.createElement("button");
-    del.className = "red";
-    del.textContent = "删除";
-    del.onclick = ()=>{
+    const cpBtn=document.createElement("button");
+    cpBtn.className="gray"; cpBtn.textContent="复制";
+    cpBtn.onclick=()=>copyRecord(rec);
+
+    const noteBtn=document.createElement("button");
+    noteBtn.className="gray"; noteBtn.textContent="备注";
+    noteBtn.onclick=()=>openNoteModal(index);
+
+    const delBtn=document.createElement("button");
+    delBtn.className="red"; delBtn.textContent="删除";
+    delBtn.onclick=()=>{
       if(confirm("确定删除？")){
-        const data = getRecords();
-        data.splice(index,1);
-        setRecords(data);
-        renderRecords();
+        const data=getRecords();data.splice(index,1);setRecords(data);renderRecords();
       }
     };
 
-    // 按顺序添加按钮：追加、复制、删除
-    btns.append(editBtn, cp, del);
-    card.append(st, tm, peopleWrap, btns);
+    btns.append(addBtn,cpBtn,noteBtn,delBtn);
+    card.append(btns);
     return card;
   }
 
-  r1.innerHTML = "";
+  r1.innerHTML="";
   list.slice(0,5).forEach((rec,i)=>r1.appendChild(makeItem(rec,i)));
-  r2.innerHTML = "";
+  r2.innerHTML="";
   list.forEach((rec,i)=>r2.appendChild(makeItem(rec,i)));
 }
 
@@ -558,16 +570,22 @@ function clearAllRecords(){
 }
 
 function showAllPage(){
-  document.querySelector(".main-page").style.display = "none";
-  document.querySelector(".all-page").style.display = "block";
+  document.querySelector(".main-page").style.display="none";
+  document.querySelector(".all-page").style.display="block";
 }
 function showMainPage(){
-  document.querySelector(".all-page").style.display = "none";
-  document.querySelector(".main-page").style.display = "block";
+  document.querySelector(".all-page").style.display="none";
+  document.querySelector(".main-page").style.display="block";
+}
+
+function renderAll(){
+  renderPeople();
+  loadLeaderSelect();
+  loadLv1();
+  renderRecords();
 }
 
 renderAll();
 </script>
 </body>
-
 </html>
