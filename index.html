@@ -43,8 +43,9 @@ button.red{background:#f44}
 .record-status{font-size:16px;font-weight:bold;color:#2196F3;margin-bottom:4px}
 .record-time{font-size:13px;color:#666;margin-bottom:8px}
 .record-people{margin-bottom:8px}
+/* 修改：按钮行三等分 */
 .record-btns{display:flex;gap:4px}
-.record-btns button{padding:4px 6px;font-size:12px}
+.record-btns button{flex:1;padding:4px 6px;font-size:12px;width:auto}
 
 .all-page{display:none}
 
@@ -57,6 +58,12 @@ button.red{background:#f44}
 #previewModal {position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);display:none;justify-content:center;align-items:center;padding:10px;z-index:9999}
 #previewCard {background:#fff;border-radius:12px;max-width:360px;width:100%;padding:20px}
 #previewText {white-space:pre-line;background:#f4f4f4;padding:10px;border-radius:6px;margin:10px 0;font-size:14px}
+
+/* 新增：编辑名单弹窗样式 */
+#editPeopleModal {position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:none;justify-content:center;align-items:center;padding:10px;z-index:9998}
+#editPeopleContent {background:#fff;border-radius:12px;max-width:380px;width:100%;padding:20px}
+#editPeopleGrid {display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:15px 0;max-height:300px;overflow-y:auto;padding:8px;border:1px solid #eee;border-radius:8px}
+#editPeopleGrid .item {font-size:13px;padding:10px 4px}
 </style>
 
 <body>
@@ -105,6 +112,18 @@ button.red{background:#f44}
   </div>
 </div>
 
+<!-- 编辑名单弹窗（新增） -->
+<div id="editPeopleModal">
+  <div id="editPeopleContent">
+    <div class="modal-title">重新选择名单</div>
+    <div id="editPeopleGrid"></div>
+    <div class="btn-group">
+      <button onclick="saveEditedPeople()">保存修改</button>
+      <button class="gray" onclick="closeEditPeopleModal()">取消</button>
+    </div>
+  </div>
+</div>
+
 <div id="peopleModal" class="modal">
   <div class="modal-content">
     <div class="modal-title">编辑名单（一行一个）</div>
@@ -132,6 +151,9 @@ const STORAGE_KEY = 'jichibang_records';
 const PEOPLE_KEY = 'cfg_people';
 const STATUS_KEY = 'cfg_status4';
 const week = ["周日","周一","周二","周三","周四","周五","周六"];
+
+// 新增：存储当前编辑的记录索引
+let currentEditIndex = -1;
 
 function getPeopleText(){
   return localStorage.getItem(PEOPLE_KEY) || "人1\n人2\n人3\n人4\n人5";
@@ -405,6 +427,56 @@ function closePreview(){
   document.getElementById("previewModal").style.display = "none";
 }
 
+// ====================== 新增：编辑名单功能 ======================
+function openEditPeopleModal(index){
+  // 存储当前编辑的记录索引
+  currentEditIndex = index;
+  const records = getRecords();
+  const targetRecord = records[index];
+  
+  // 获取当前记录已选中的人名
+  const selectedNames = targetRecord.people.map(p => p.name);
+  
+  // 渲染编辑弹窗的名单
+  const grid = document.getElementById("editPeopleGrid");
+  grid.innerHTML = "";
+  getPeople().forEach(name=>{
+    const item = document.createElement("div");
+    item.className = `item ${selectedNames.includes(name) ? 'active' : ''}`;
+    item.textContent = name;
+    item.onclick = () => item.classList.toggle("active");
+    grid.appendChild(item);
+  });
+  
+  // 显示弹窗
+  document.getElementById("editPeopleModal").style.display = "flex";
+}
+
+function closeEditPeopleModal(){
+  // 重置编辑索引并关闭弹窗
+  currentEditIndex = -1;
+  document.getElementById("editPeopleModal").style.display = "none";
+}
+
+function saveEditedPeople(){
+  if(currentEditIndex === -1) return;
+  
+  // 获取弹窗中选中的人名
+  const selectedItems = [...document.querySelectorAll("#editPeopleGrid .item.active")];
+  const selectedNames = selectedItems.map(item => item.textContent);
+  
+  // 更新记录
+  const records = getRecords();
+  // 重新构建people数组，保持active状态为true
+  records[currentEditIndex].people = selectedNames.map(name => ({name, active: true}));
+  setRecords(records);
+  
+  // 关闭弹窗并重新渲染记录
+  closeEditPeopleModal();
+  renderRecords();
+  alert("名单修改成功！");
+}
+
 function renderRecords(){
   const list = getRecords();
   const r1 = document.getElementById("recentRecords");
@@ -443,6 +515,12 @@ function renderRecords(){
     const btns = document.createElement("div");
     btns.className = "record-btns";
 
+    // 新增：追加/编辑按钮
+    const editBtn = document.createElement("button");
+    editBtn.className = "gray";
+    editBtn.textContent = "追加";
+    editBtn.onclick = () => openEditPeopleModal(index);
+
     const cp = document.createElement("button");
     cp.className = "gray";
     cp.textContent = "复制";
@@ -460,7 +538,8 @@ function renderRecords(){
       }
     };
 
-    btns.append(cp, del);
+    // 按顺序添加按钮：追加、复制、删除
+    btns.append(editBtn, cp, del);
     card.append(st, tm, peopleWrap, btns);
     return card;
   }
