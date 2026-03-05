@@ -41,11 +41,14 @@ input::placeholder{color:#999}
 button{background:#2196F3;color:white;border:none;cursor:pointer}
 button.gray{background:#777}
 button.red{background:#f44}
+button.star{background:#FFB800;color:#222;font-weight:bold}
 
 .btn-group{display:flex;gap:8px;margin:10px 0}
 
 .record-card{background:#fff;border:1px solid #ddd;border-radius:10px;padding:10px;margin-bottom:10px}
-.record-status{font-size:16px;font-weight:bold;color:#2196F3;margin-bottom:4px}
+.record-head{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.star-btn{font-size:18px;cursor:pointer;padding:0 4px;user-select:none}
+.record-status{flex:1;font-size:16px;font-weight:bold;color:#2196F3}
 .record-time{font-size:13px;color:#666;margin-bottom:8px}
 .record-people{margin-bottom:8px}
 .record-note{margin:8px 0;padding:8px;background:#f9f9f9;border-radius:6px;font-size:14px;white-space:pre-line}
@@ -53,6 +56,7 @@ button.red{background:#f44}
 .record-btns button{flex:1;padding:4px 6px;font-size:12px;width:auto}
 
 .all-page{display:none}
+.star-page{display:none}
 
 .modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:none;justify-content:center;align-items:center;padding:10px}
 .modal-content{background:#fff;border-radius:12px;width:100%;max-width:400px;padding:16px}
@@ -61,14 +65,13 @@ button.red{background:#f44}
 
 #previewModal {position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);display:none;justify-content:center;align-items:center;padding:10px;z-index:9999}
 #previewCard {background:#fff;border-radius:12px;max-width:360px;width:100%;padding:20px}
-#previewText {white-space:pre-line;background:#f4f4f4;padding:10px;border-radius:6px;margin:10px 0;font-size:14px}
+#previewText {white-space:pre-line;background:#f4f4f9;padding:10px;border-radius:6px;margin:10px 0;font-size:14px}
 
 #editPeopleModal {position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:none;justify-content:center;align-items:center;padding:10px;z-index:9998}
 #editPeopleContent {background:#fff;border-radius:12px;max-width:380px;width:100%;padding:20px}
 #editPeopleGrid {display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:15px 0;max-height:300px;overflow-y:auto;padding:8px;border:1px solid #eee;border-radius:8px}
 #editPeopleGrid .item {font-size:13px;padding:10px 4px}
 
-/* 备注弹窗 */
 #noteModal {position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:none;justify-content:center;align-items:center;padding:10px;z-index:9997}
 </style>
 
@@ -86,7 +89,6 @@ button.red{background:#f44}
   <div class="input-row">
     <input id="customInput" placeholder="仅手动输入" autocomplete="off">
     <select id="leaderSelect">
-      <option value="" disabled selected class="select-placeholder">请指定负责人</option>
     </select>
   </div>
 
@@ -100,6 +102,7 @@ button.red{background:#f44}
   <div class="btn-group">
     <button onclick="generate()">开始生成</button>
     <button class="gray" onclick="clearSelected()">清除选中</button>
+    <button class="star" onclick="showStarPage()">我的收藏</button>
   </div>
 
   <div class="title">最近5条·状态可追踪</div>
@@ -108,10 +111,22 @@ button.red{background:#f44}
 </div>
 
 <div class="all-page">
-  <button class="gray" onclick="showMainPage()">← 返回标记页</button>
-  <button class="red" onclick="clearAllRecords()">清空全部记录</button>
-  <div class="title">全部历史记录·状态可追踪</div>
+  <div class="btn-group">
+    <button class="gray" onclick="showMainPage()">← 返回</button>
+    <button class="star" onclick="showStarPage()">我的收藏</button>
+    <button class="red" onclick="clearAllRecords()">清空全部记录</button>
+  </div>
+  <div class="title">全部历史记录</div>
   <div id="allRecords"></div>
+</div>
+
+<div class="star-page">
+  <div class="btn-group">
+    <button class="gray" onclick="showMainPage()">← 返回</button>
+    <button class="red" onclick="clearStarRecords()">清空收藏</button>
+  </div>
+  <div class="title">我的收藏</div>
+  <div id="starRecords"></div>
 </div>
 
 <!-- 复制预览 -->
@@ -124,8 +139,8 @@ button.red{background:#f44}
 </div>
 
 <!-- 追加编辑 -->
-<div id="editPeopleModal">
-  <div id="editPeopleContent">
+<div id="editPeopleModal" class="modal">
+  <div class="modal-content">
     <div class="modal-title">重新选择名单</div>
     <div id="editPeopleGrid"></div>
     <div class="btn-group">
@@ -152,10 +167,8 @@ button.red{background:#f44}
   <div class="modal-content">
     <div class="modal-title">编辑全部名单（一行一个）</div>
     <textarea class="modal-textarea" id="peopleText"></textarea>
-
     <div class="modal-title">编辑负责人名单（一行一个）</div>
     <textarea class="modal-textarea" id="leaderText"></textarea>
-
     <div class="btn-group">
       <button onclick="savePeopleAndLeader()">保存</button>
       <button class="gray" onclick="closePeopleModal()">取消</button>
@@ -207,11 +220,13 @@ function getLeaders(){
 function loadLeaderSelect(){
   const sel = document.getElementById("leaderSelect");
   sel.innerHTML = "";
-  const ph = document.createElement("option");
-  ph.value = ""; ph.disabled = true; ph.selected = true;
-  ph.textContent = "请指定负责人";
-  ph.className = "select-placeholder";
-  sel.appendChild(ph);
+  
+  const emptyOpt = document.createElement("option");
+  emptyOpt.value = "";
+  emptyOpt.textContent = "不选择负责人";
+  emptyOpt.className = "select-placeholder";
+  sel.appendChild(emptyOpt);
+
   getLeaders().forEach(name=>{
     const o = document.createElement("option");
     o.value=name; o.textContent=name;
@@ -271,68 +286,79 @@ function saveStatus(){
 function loadLv1(){
   const t=getStatusTree();
   const sel=document.getElementById("lv1");
-  sel.innerHTML="";
-  const ph=document.createElement("option");
-  ph.value="";ph.disabled=true;ph.selected=true;ph.textContent="选项1";ph.className="select-placeholder";
-  sel.appendChild(ph);
+  sel.innerHTML = "";
+
+  const emptyOpt = document.createElement("option");
+  emptyOpt.value = "";
+  emptyOpt.textContent = "不选择";
+  emptyOpt.className = "select-placeholder";
+  sel.appendChild(emptyOpt);
+
   Object.keys(t).forEach(k=>{
     const o=document.createElement("option");o.value=k;o.textContent=k;sel.appendChild(o);
   });
-  loadLv2(true);
+  loadLv2();
 }
-function loadLv2(init=false){
+
+function loadLv2(){
   const t=getStatusTree();
   const v1=document.getElementById("lv1").value;
   const sel=document.getElementById("lv2");
-  sel.innerHTML="";
-  if(!v1&&!init){alert("请从选项1开始，按顺序指定选项");}
-  if(!v1){
-    sel.disabled=true;
-    const ph=document.createElement("option");ph.value="";ph.textContent="选项2";ph.className="select-placeholder";ph.selected=true;
-    sel.appendChild(ph);
-  }else{
-    sel.disabled=false;
-    const ph=document.createElement("option");ph.value="";ph.disabled=true;ph.selected=true;ph.textContent="选项2";ph.className="select-placeholder";
-    sel.appendChild(ph);
-    if(t[v1])Object.keys(t[v1]).forEach(k=>{const o=document.createElement("option");o.value=k;o.textContent=k;sel.appendChild(o);});
+  sel.innerHTML = "";
+
+  const emptyOpt = document.createElement("option");
+  emptyOpt.value = "";
+  emptyOpt.textContent = "不选择";
+  emptyOpt.className = "select-placeholder";
+  sel.appendChild(emptyOpt);
+
+  if(v1 && t[v1]){
+    Object.keys(t[v1]).forEach(k=>{
+      const o=document.createElement("option");o.value=k;o.textContent=k;sel.appendChild(o);
+    });
   }
   loadLv3();
 }
+
 function loadLv3(){
   const t=getStatusTree();
   const v1=document.getElementById("lv1").value;
   const v2=document.getElementById("lv2").value;
   const sel=document.getElementById("lv3");
-  sel.innerHTML="";
-  if(!v2){
-    sel.disabled=true;
-    const ph=document.createElement("option");ph.value="";ph.textContent="选项3";ph.className="select-placeholder";ph.selected=true;
-    sel.appendChild(ph);
-  }else{
-    sel.disabled=false;
-    const ph=document.createElement("option");ph.value="";ph.disabled=true;ph.selected=true;ph.textContent="选项3";ph.className="select-placeholder";
-    sel.appendChild(ph);
-    if(t[v1]?.[v2])Object.keys(t[v1][v2]).forEach(k=>{const o=document.createElement("option");o.value=k;o.textContent=k;sel.appendChild(o);});
+  sel.innerHTML = "";
+
+  const emptyOpt = document.createElement("option");
+  emptyOpt.value = "";
+  emptyOpt.textContent = "不选择";
+  emptyOpt.className = "select-placeholder";
+  sel.appendChild(emptyOpt);
+
+  if(v1 && v2 && t[v1] && t[v1][v2]){
+    Object.keys(t[v1][v2]).forEach(k=>{
+      const o=document.createElement("option");o.value=k;o.textContent=k;sel.appendChild(o);
+    });
   }
   loadLv4();
 }
+
 function loadLv4(){
   const t=getStatusTree();
   const v1=document.getElementById("lv1").value;
   const v2=document.getElementById("lv2").value;
   const v3=document.getElementById("lv3").value;
   const sel=document.getElementById("lv4");
-  sel.innerHTML="";
-  if(!v3){
-    sel.disabled=true;
-    const ph=document.createElement("option");ph.value="";ph.textContent="选项4";ph.className="select-placeholder";ph.selected=true;
-    sel.appendChild(ph);
-  }else{
-    sel.disabled=false;
-    const ph=document.createElement("option");ph.value="";ph.disabled=true;ph.selected=true;ph.textContent="选项4";ph.className="select-placeholder";
-    sel.appendChild(ph);
-    const list=t[v1]?.[v2]?.[v3]||[];
-    list.forEach(k=>{const o=document.createElement("option");o.value=k;o.textContent=k;sel.appendChild(o);});
+  sel.innerHTML = "";
+
+  const emptyOpt = document.createElement("option");
+  emptyOpt.value = "";
+  emptyOpt.textContent = "不选择";
+  emptyOpt.className = "select-placeholder";
+  sel.appendChild(emptyOpt);
+
+  if(v1 && v2 && v3 && t[v1] && t[v1][v2] && t[v1][v2][v3]){
+    t[v1][v2][v3].forEach(k=>{
+      const o=document.createElement("option");o.value=k;o.textContent=k;sel.appendChild(o);
+    });
   }
 }
 
@@ -374,8 +400,11 @@ function generate(){
     status=custom;
   }else{
     const parts=[a,b,c,d].filter(Boolean);
-    if(parts.length===0){alert("请先选择状态或手动输入");return;}
-    status=parts.join(" - ");
+    if(parts.length===0){
+      status = "";
+    }else{
+      status=parts.join(" - ");
+    }
   }
 
   const list=getRecords();
@@ -384,12 +413,13 @@ function generate(){
     status:status,
     people:selected.map(name=>({name,active:true,type:"normal"})),
     leader:leader,
-    note:""
+    note:"",
+    star:false
   });
   setRecords(list);
 
   document.getElementById("customInput").value="";
-  document.getElementById("leaderSelect").selectedIndex=0;
+  document.getElementById("leaderSelect").selectedIndex = 0;
   clearSelected();
   loadLv1();
   renderRecords();
@@ -407,7 +437,7 @@ function copyRecord(rec){
   const copyText=`通知：${activeNames}，${rec.status}${leaderText}`;
   navigator.clipboard.writeText(copyText);
   document.getElementById("previewText").innerText=copyText;
-  document.getElementById("previewModal").style.display="flex";
+  document.getElementById("previewModal").style.display = "flex";
 }
 function closePreview(){document.getElementById("previewModal").style.display="none";}
 
@@ -456,10 +486,11 @@ function saveEditedPeople(){
   setRecords(records);
   closeEditPeopleModal();
   renderRecords();
+  renderStarPage();
   alert("名单修改成功！");
 }
 
-// ====================== 备注功能 ======================
+// 备注功能
 function openNoteModal(index){
   currentNoteIndex = index;
   const records = getRecords();
@@ -477,105 +508,167 @@ function saveNote(){
   setRecords(records);
   closeNoteModal();
   renderRecords();
+  renderStarPage();
 }
 
-// 渲染记录
-function renderRecords(){
-  const list=getRecords();
-  const r1=document.getElementById("recentRecords");
-  const r2=document.getElementById("allRecords");
-
-  function makeItem(rec,index){
-    const card=document.createElement("div");
-    card.className="record-card";
-
-    const st=document.createElement("div");
-    st.className="record-status";
-    st.textContent="状态："+rec.status;
-
-    const tm=document.createElement("div");
-    tm.className="record-time";
-    tm.textContent=rec.time;
-
-    const pw=document.createElement("div");
-    pw.className="record-people";
-    rec.people.forEach((obj,i)=>{
-      const s=document.createElement("span");
-      s.className="pill "+(obj.active?"active":"inactive");
-      s.textContent=obj.name;
-      s.onclick=()=>{
-        if(!confirm("确定切换该人物状态？"))return;
-        rec.people[i].active=!rec.people[i].active;
-        const all=getRecords();all[index]=rec;setRecords(all);renderRecords();
-      };
-      pw.appendChild(s);
-    });
-    if(rec.leader){
-      const sp=document.createElement("span");
-      sp.className="pill leader";
-      sp.textContent=rec.leader;
-      pw.appendChild(sp);
-    }
-
-    // 备注显示
-    if(rec.note){
-      const noteDiv = document.createElement("div");
-      noteDiv.className = "record-note";
-      noteDiv.textContent = "备注：" + rec.note;
-      card.append(st,tm,pw,noteDiv);
-    }else{
-      card.append(st,tm,pw);
-    }
-
-    // 4个按钮：追加、复制、备注、删除
-    const btns=document.createElement("div");
-    btns.className="record-btns";
-
-    const addBtn=document.createElement("button");
-    addBtn.className="gray"; addBtn.textContent="追加";
-    addBtn.onclick=()=>openEditPeopleModal(index);
-
-    const cpBtn=document.createElement("button");
-    cpBtn.className="gray"; cpBtn.textContent="复制";
-    cpBtn.onclick=()=>copyRecord(rec);
-
-    const noteBtn=document.createElement("button");
-    noteBtn.className="gray"; noteBtn.textContent="备注";
-    noteBtn.onclick=()=>openNoteModal(index);
-
-    const delBtn=document.createElement("button");
-    delBtn.className="red"; delBtn.textContent="删除";
-    delBtn.onclick=()=>{
-      if(confirm("确定删除？")){
-        const data=getRecords();data.splice(index,1);setRecords(data);renderRecords();
-      }
-    };
-
-    btns.append(addBtn,cpBtn,noteBtn,delBtn);
-    card.append(btns);
-    return card;
-  }
-
-  r1.innerHTML="";
-  list.slice(0,5).forEach((rec,i)=>r1.appendChild(makeItem(rec,i)));
-  r2.innerHTML="";
-  list.forEach((rec,i)=>r2.appendChild(makeItem(rec,i)));
+// 收藏切换
+function toggleStar(index){
+  const records = getRecords();
+  records[index].star = !records[index].star;
+  setRecords(records);
+  renderRecords();
+  renderStarPage();
 }
 
+// 页面切换
+function showMainPage(){
+  document.querySelector(".main-page").style.display = "block";
+  document.querySelector(".all-page").style.display = "none";
+  document.querySelector(".star-page").style.display = "none";
+}
+function showAllPage(){
+  document.querySelector(".main-page").style.display = "none";
+  document.querySelector(".all-page").style.display = "block";
+  document.querySelector(".star-page").style.display = "none";
+}
+function showStarPage(){
+  document.querySelector(".main-page").style.display = "none";
+  document.querySelector(".all-page").style.display = "none";
+  document.querySelector(".star-page").style.display = "block";
+  renderStarPage();
+}
+
+// 清空
 function clearAllRecords(){
   if(confirm("确定清空全部记录？")){
     localStorage.removeItem(STORAGE_KEY);
     renderRecords();
+    renderStarPage();
+  }
+}
+function clearStarRecords(){
+  if(confirm("确定清空所有收藏？")){
+    const records = getRecords();
+    records.forEach(r=>r.star=false);
+    setRecords(records);
+    renderStarPage();
   }
 }
 
-function showAllPage(){
-  document.querySelector(".main-page").style.display="none";
-  document.querySelector(".all-page").style.display="block";
+// 渲染单条记录
+function makeRecordItem(realIndex){
+  const records = getRecords();
+  const rec = records[realIndex];
+
+  const card=document.createElement("div");
+  card.className="record-card";
+
+  const head = document.createElement("div");
+  head.className = "record-head";
+
+  const starBtn = document.createElement("div");
+  starBtn.className = "star-btn";
+  starBtn.textContent = rec.star ? "★" : "☆";
+  starBtn.onclick = () => {
+    toggleStar(realIndex);
+  };
+  head.appendChild(starBtn);
+
+  const st=document.createElement("div");
+  st.className="record-status";
+  st.textContent="状态："+rec.status;
+  head.appendChild(st);
+  card.appendChild(head);
+
+  const tm=document.createElement("div");
+  tm.className="record-time";
+  tm.textContent=rec.time;
+  card.appendChild(tm);
+
+  const pw=document.createElement("div");
+  pw.className="record-people";
+  rec.people.forEach((obj,i)=>{
+    const s=document.createElement("span");
+    s.className="pill "+(obj.active?"active":"inactive");
+    s.textContent=obj.name;
+    s.onclick=()=>{
+      if(!confirm("确定切换该人物状态？"))return;
+      rec.people[i].active = !rec.people[i].active;
+      const all = getRecords();
+      all[realIndex].people = rec.people;
+      setRecords(all);
+      renderRecords();
+      renderStarPage();
+    };
+    pw.appendChild(s);
+  });
+  if(rec.leader){
+    const sp=document.createElement("span");
+    sp.className="pill leader";
+    sp.textContent=rec.leader;
+    pw.appendChild(sp);
+  }
+  card.appendChild(pw);
+
+  if(rec.note){
+    const noteDiv = document.createElement("div");
+    noteDiv.className = "record-note";
+    noteDiv.textContent = "备注："+rec.note;
+    card.appendChild(noteDiv);
+  }
+
+  const btns=document.createElement("div");
+  btns.className="record-btns";
+
+  const addBtn=document.createElement("button");
+  addBtn.className="gray"; addBtn.textContent="追加";
+  addBtn.onclick=()=>openEditPeopleModal(realIndex);
+
+  const cpBtn=document.createElement("button");
+  cpBtn.className="gray"; cpBtn.textContent="复制";
+  cpBtn.onclick=()=>copyRecord(rec);
+
+  const noteBtn=document.createElement("button");
+  noteBtn.className="gray"; noteBtn.textContent="备注";
+  noteBtn.onclick=()=>openNoteModal(realIndex);
+
+  const delBtn=document.createElement("button");
+  delBtn.className="red"; delBtn.textContent="删除";
+  delBtn.onclick=()=>{
+    if(confirm("确定删除？")){
+      const data=getRecords();
+      data.splice(realIndex,1);
+      setRecords(data);
+      renderRecords();
+      renderStarPage();
+    }
+  };
+
+  btns.append(addBtn,cpBtn,noteBtn,delBtn);
+  card.appendChild(btns);
+  return card;
 }
-function showMainPage(){
-  document.querySelector(".all-page").style.display="none";
-  document.querySelector(".main-page").style.display="block";
+
+// 渲染所有页面
+function renderRecords(){
+  const list=getRecords();
+  const r1=document.getElementById("recentRecords");
+  const r2=document.getElementById("allRecords");
+  r1.innerHTML="";
+  r2.innerHTML="";
+  list.slice(0,5).forEach((rec,i)=>r1.appendChild(makeRecordItem(i)));
+  list.forEach((rec,i)=>r2.appendChild(makeRecordItem(i)));
+}
+
+function renderStarPage(){
+  const list=getRecords();
+  const box=document.getElementById("starRecords");
+  box.innerHTML="";
+  list.forEach((item, idx)=>{
+    if(item.star){
+      box.appendChild(makeRecordItem(idx));
+    }
+  })
 }
 
 function renderAll(){
