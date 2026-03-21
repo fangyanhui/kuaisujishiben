@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" name="viewport" content="width=device-width, initial-scale=1.0">
+<title>记事本后台·全量同步</title>
+<style>
+/* 后台面板专属样式 */
+body {
+  margin: 0;
+  padding: 12px;
+  font-family: system-ui, sans-serif;
+  background: #f6f6f6;
+}
+.admin-panel {
+  width: 100%;
+  height: 100%;
+}
+.admin-title {
+  font-size: 16px;
+  font-weight: bold;
+  color: #9C27B0;
+  margin-bottom: 10px;
+}
+.admin-label {
+  font-size: 12px;
+  margin: 6px 0 3px;
+  font-weight: bold;
+}
+.admin-text {
+  width: 100%;
+  height: 150px;
+  padding: 6px;
+  border-radius: 8px; /* 统一圆角 */
+  border: 1px solid #ccc;
+  font-size: 11px;
+  font-family: monospace;
+  box-sizing: border-box; /* 防止padding撑大 */
+}
+.admin-input {
+  width: 100%;
+  padding: 10px 8px; /* 统一内边距 */
+  border-radius: 8px; /* 统一圆角 */
+  border: 1px solid #ccc;
+  font-size: 13px;
+  box-sizing: border-box; /* 防止padding撑大 */
+  height: 42px; /* 固定高度，和按钮一致 */
+  line-height: 1; /* 垂直居中 */
+}
+.admin-row {
+  display: flex;
+  gap: 8px; /* 增大间距更美观 */
+  margin-bottom: 12px; /* 统一行间距 */
+  align-items: flex-end; /* 底部对齐 */
+}
+.admin-row > div {
+  flex: 1;
+}
+/* 统一按钮样式（顶部+测试按钮共用） */
+.admin-btn {
+  flex: 1;
+  padding: 10px 6px;
+  font-size: 14px;
+  border-radius: 8px; /* 统一圆角 */
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  height: 42px; /* 固定高度，和输入框一致 */
+  box-sizing: border-box; /* 防止padding撑大 */
+  line-height: 1; /* 垂直居中 */
+}
+/* 按钮颜色变体 */
+.btn-primary { background: #2196F3; }
+.btn-success { background: #009688; }
+.btn-gray { background: #777; }
+.btn-red { background: #f44; }
+
+/* 顶部按钮栏单独调整（仅间距） */
+.admin-top-buttons {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+</style>
+</head>
+<body>
+<div class="admin-panel" id="adminPanel">
+  <div class="admin-title">🔧 全量数据同步</div>
+  <div class="admin-top-buttons">
+    <!-- 统一用admin-btn类 -->
+    <button class="admin-btn btn-primary" onclick="uploadAllLocalStorage()">📤 上传全量本地数据</button>
+    <button class="admin-btn btn-success" onclick="pullAndOverwrite()">📥 拉取并覆盖本地</button>
+    <!-- 新增：刷新主页按钮 -->
+    <button class="admin-btn btn-gray" onclick="refreshParentPage()">🔄 刷新主页</button>
+  </div>
+  <div class="admin-row">
+    <div>
+      <div class="admin-label">云函数地址</div>
+      <input id="cloudUrl" class="admin-input" value="https://1408347752-dxgsap4qrj.ap-guangzhou.tencentscf.com">
+    </div>
+    <div>
+      <div class="admin-label">WebHook 地址</div>
+      <input id="webhookUrl" class="admin-input" value="https://www.kdocs.cn/api/v3/ide/file/376210036343/script/V2-7gjfNFrMGHyN1j7kRfKpvV/sync_task">
+    </div>
+  </div>
+  <div class="admin-row">
+    <div>
+      <div class="admin-label">自由测试文本</div>
+      <input id="testText" class="admin-input" value="测试消息：20260316 正常发送">
+      <!-- 把textarea改成input，更符合单行文本的使用场景，也更对齐 -->
+    </div>
+    <div style="flex-shrink: 0; width: 120px;">
+      <!-- 固定按钮宽度，避免拉伸 -->
+      <div class="admin-label">&nbsp;</div>
+      <!-- 统一用admin-btn类，和顶部按钮样式一致 -->
+      <button class="admin-btn btn-primary" onclick="sendTestText()">📤 发送测试文本</button>
+    </div>
+  </div>
+  <div class="admin-row">
+    <div>
+      <div class="admin-label">云端原始返回</div>
+      <textarea id="cloudRawData" class="admin-text" readonly></textarea>
+    </div>
+    <div>
+      <div class="admin-label">云端有效数据</div>
+      <textarea id="cloudUsefulData" class="admin-text" readonly></textarea>
+    </div>
+  </div>
+</div>
+
+<script>
+const KEYS = {
+  records:  "jichibang_records",
+  people:   "cfg_people",
+  leader:   "cfg_leader",
+  status4:  "cfg_status4"
+};
+
+// 读取本地存储数据
+function getPeople()    { return localStorage.getItem(KEYS.people)   || ""; }
+function getLeader()    { return localStorage.getItem(KEYS.leader)   || ""; }
+function getStatus4()   { return localStorage.getItem(KEYS.status4) || ""; }
+function getRecords()   { try{return JSON.parse(localStorage.getItem(KEYS.records))||[]}catch{return[]} }
+function setPeople(s)   { localStorage.setItem(KEYS.people,  s.trim()) }
+function setLeader(s)   { localStorage.setItem(KEYS.leader,  s.trim()) }
+function setStatus4(s)  { localStorage.setItem(KEYS.status4, s.trim()) }
+function setRecords(r)  { localStorage.setItem(KEYS.records, JSON.stringify(r)) }
+
+// 保存拉取结果
+function saveLastPullResult(raw, useful) {
+  localStorage.setItem("lastCloudRaw", raw);
+  localStorage.setItem("lastCloudUseful", useful);
+}
+function loadLastPullResult() {
+  return {
+    raw: localStorage.getItem("lastCloudRaw") || "",
+    useful: localStorage.getItem("lastCloudUseful") || ""
+  };
+}
+
+// 新增：刷新外层主页（适配iframe/单独页面）
+function refreshParentPage() {
+  try {
+    // 1. 如果是iframe子页面，给父页面发刷新消息
+    window.parent.postMessage({
+      type: 'REFRESH_PARENT'
+    }, '*');
+    alert('✅ 已发送刷新指令，主页将自动刷新！');
+  } catch (e) {
+    // 2. 如果不是iframe，直接刷新当前页
+    window.location.reload(true);
+    alert('✅ 页面刷新成功！');
+  }
+}
+
+// 上传全量本地数据
+async function uploadAllLocalStorage(){
+  const cloudUrl = document.getElementById("cloudUrl").value;
+  const webhookUrl = document.getElementById("webhookUrl").value;
+  if(!cloudUrl || !webhookUrl){ alert("云函数地址 和 WebHook 地址都不能为空！"); return; }
+  const fullData = { 
+    [KEYS.records]: getRecords(), 
+    [KEYS.people]: getPeople(), 
+    [KEYS.leader]: getLeader(), 
+    [KEYS.status4]: getStatus4() 
+  };
+  try {
+    const res = await fetch(cloudUrl, {
+      method: "POST", 
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ 
+        webhookUrl: webhookUrl, 
+        message: { Context: { argv: { message: JSON.stringify(fullData) } } } 
+      })
+    });
+    alert("上传全量数据成功");
+  } catch(e){ 
+    alert("上传失败："+ e.message); 
+  }
+}
+
+// 发送测试文本
+async function sendTestText() {
+  const cloudUrl = document.getElementById("cloudUrl").value;
+  const webhookUrl = document.getElementById("webhookUrl").value;
+  const testMsg = document.getElementById("testText").value.trim();
+  if (!cloudUrl || !webhookUrl) { 
+    alert("云函数地址 和 WebHook 地址都不能为空！"); 
+    return; 
+  }
+  if (!testMsg) { 
+    alert("测试文本不能为空！"); 
+    return; 
+  }
+  try {
+    const res = await fetch(cloudUrl, {
+      method: "POST", 
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ 
+        webhookUrl: webhookUrl, 
+        message: { Context: { argv: { message: testMsg } } } 
+      })
+    });
+    const text = await res.text();
+    document.getElementById("cloudRawData").value = text;
+    document.getElementById("cloudUsefulData").value = "测试发送成功！";
+    alert("测试发送成功！");
+  } catch (e) { 
+    alert("发送失败：" + e.message); 
+  }
+}
+
+// 拉取云端数据
+async function pullCloudData(){
+  const cu=document.getElementById("cloudUrl").value,wh=document.getElementById("webhookUrl").value;
+  if(!cu||!wh){alert("地址不能为空");return null}
+  const last = loadLastPullResult();
+  document.getElementById("cloudRawData").value = "拉取中...";
+  document.getElementById("cloudUsefulData").value = "解析中...";
+  try{
+    const resp=await fetch(cu,{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        webhookUrl:wh,
+        message:{Context:{argv:{message:"@仅读@"}}}
+      })
+    });
+    const txt=await resp.text();
+    saveLastPullResult(txt, "");
+    document.getElementById("cloudRawData").value = txt;
+    const cleanTxt = txt.replace(/^状态码?：\d+/,"").trim();
+    let json;
+    try { 
+      json = JSON.parse(cleanTxt); 
+    } catch (e) {
+      const useful = "JSON解析失败：" + e.message;
+      saveLastPullResult(txt, useful);
+      document.getElementById("cloudUsefulData").value = useful;
+      return null;
+    }
+    const written = json.data?.result?.written_value;
+    if(!written){
+      const useful = "无written_value数据";
+      saveLastPullResult(txt, useful);
+      document.getElementById("cloudUsefulData").value = useful;
+      return null;
+    }
+    let parsedData;
+    try {
+      parsedData = JSON.parse(written);
+      const formattedData = JSON.stringify(parsedData, null, 2);
+      saveLastPullResult(txt, formattedData);
+      document.getElementById("cloudUsefulData").value = formattedData;
+    } catch (e) {
+      const useful = "written_value解析失败：" + e.message + "\n\n原始内容：\n" + written;
+      saveLastPullResult(txt, useful);
+      document.getElementById("cloudUsefulData").value = useful;
+      return null;
+    }
+    return parsedData;
+  }catch(e){
+    document.getElementById("cloudRawData").value = last.raw;
+    document.getElementById("cloudUsefulData").value = last.useful;
+    alert("拉取失败："+e.message);
+    return null;
+  }
+}
+
+// 覆盖本地数据
+function overwriteLocalFromCloud(data){
+  if(!data) return;
+  if(!confirm("确定用云端数据覆盖本地？")) return;
+  if(data[KEYS.people]!=null) setPeople(data[KEYS.people]);
+  if(data[KEYS.leader]!=null) setLeader(data[KEYS.leader]);
+  if(data[KEYS.status4]!=null) setStatus4(data[KEYS.status4]);
+  if(data[KEYS.records]!=null) setRecords(data[KEYS.records]);
+  alert("覆盖完成，建议刷新主页！");
+}
+
+// 拉取并覆盖
+async function pullAndOverwrite(){
+  const data = await pullCloudData();
+  if(data) overwriteLocalFromCloud(data);
+}
+
+// 初始化云端数据视图
+function initCloudView() {
+  const last = loadLastPullResult();
+  document.getElementById("cloudRawData").value = last.raw;
+  document.getElementById("cloudUsefulData").value = last.useful;
+}
+
+window.onload=function(){
+  initCloudView();
+};
+</script>
+</body>
+</html>
