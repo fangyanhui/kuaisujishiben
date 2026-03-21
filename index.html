@@ -1,95 +1,320 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <meta charset="utf-8" name="viewport" content="width=device-width, initial-scale=1.0">
-<title>快速记事本·4级联动版</title>
+<title>快速记事</title>
 <style>
 *{box-sizing:border-box}
-body{margin:0;padding:12px;background:#f6f6f6;font-family:system-ui,sans-serif;max-width:420px;margin:0 auto}
-.title{text-align:center;font-size:18px;margin:10px 0;font-weight:bold}
+body{margin:0;padding:6px;background:#f6f6f6;font-family:system-ui,sans-serif;max-width:420px;margin:0 auto}
 
-.main-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:8px 0}
-.item{padding:8px 4px;text-align:center;border:1px solid #ccc;border-radius:6px;background:#fff;font-size:12px;cursor:pointer}
+.page-title{
+  text-align:center;
+  font-weight:bold;
+  font-size:17px;
+  color:#333;
+  margin:6px 0;
+  line-height:1.2;
+}
+
+.top-btn-bar{
+  display:flex;
+  gap:4px;
+  margin-bottom:8px;
+}
+.top-btn-bar button{
+  flex:1;
+  padding:8px;
+  font-size:14px;
+  border-radius:6px;
+  border:none;
+  background:#777;
+  color:#fff;
+  cursor:pointer;
+}
+
+.main-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:3px;margin:0 0 8px 0}
+.item{padding:6px 4px;text-align:center;border:1px solid #ccc;border-radius:4px;background:#fff;font-size:13px;cursor:pointer}
 .item.active{background:#4CAF50;color:#fff;border-color:#4CAF50}
 
-.pill{display:inline-block;padding:4px 8px;margin:2px;border-radius:6px;border:1px solid #ccc;font-size:12px;cursor:pointer}
+.pill{display:inline-block;padding:3px 6px;margin:1px;border-radius:4px;border:1px solid #ccc;font-size:12px;cursor:pointer}
 .pill.active{background:#4CAF50;color:#fff}
 .pill.inactive{background:#fff;color:#000}
 .pill.leader{background:#fff;color:#2196F3;border:1px solid #2196F3}
 
-.level-row{display:flex;gap:6px;margin-top:8px}
+.level-row{display:flex;gap:3px;margin:8px 0}
 .level-row select{
-  flex:1;padding:12px;border-radius:8px;border:1px solid #ccc;font-size:14px;
-  color: #333;
+  flex:1;padding:8px;border-radius:6px;border:1px solid #ccc;font-size:14px;
+  color:#333;
 }
-.level-row select:disabled{
-  background: #f9f9f9;
-  color: #999;
-  cursor: not-allowed;
-}
-.select-placeholder{
-  color: #999;
-}
+.select-placeholder{color:#999}
 
 .input-row{
-  display:flex;gap:6px;margin:8px 0
+  display:flex;gap:4px;margin:8px 0
 }
-.input-row input{flex:2;}
-.input-row select{flex:1;}
+.input-row input{flex:2;padding:8px;border-radius:6px;border:1px solid #ccc;font-size:14px}
+.input-row select{flex:1;padding:8px;border-radius:6px;border:1px solid #ccc;font-size:14px}
 
-input,select,button{width:100%;padding:12px;border-radius:8px;border:1px solid #ccc;font-size:15px;margin:0}
 input::placeholder{color:#999}
-button{background:#2196F3;color:white;border:none;cursor:pointer}
+button{background:#2196F3;color:white;border:none;cursor:pointer;border-radius:6px}
 button.gray{background:#777}
 button.red{background:#f44}
 button.star{background:#FFB800;color:#222;font-weight:bold}
 
-.btn-group{display:flex;gap:8px;margin:10px 0}
+.btn-bar{display:flex;gap:4px;margin:8px 0}
+.btn-bar button{flex:1;padding:8px;font-size:14px}
 
-.record-card{background:#fff;border:1px solid #ddd;border-radius:10px;padding:10px;margin-bottom:10px}
-.record-head{display:flex;align-items:center;gap:8px;margin-bottom:4px}
-.star-btn{font-size:18px;cursor:pointer;padding:0 4px;user-select:none}
-.record-status{flex:1;font-size:16px;font-weight:bold;color:#2196F3}
-.record-time{font-size:13px;color:#666;margin-bottom:8px}
-.record-people{margin-bottom:8px}
-.record-note{margin:8px 0;padding:8px;background:#f9f9f9;border-radius:6px;font-size:14px;white-space:pre-line}
-.record-btns{display:flex;gap:4px}
-.record-btns button{flex:1;padding:4px 6px;font-size:12px;width:auto}
+.record-card{
+  background:#fff;
+  border:1px solid #ddd;
+  border-radius:6px;
+  padding:3px;
+  margin-bottom:1px;
+  /* ========== 关键修改 ========== */
+  /* 固定高度改为最大高度，自动高度适配内容 */
+  max-height:150px;
+  height:auto;
+  /* ============================= */
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  justify-content:space-between;
+}
+
+.record-header{
+  position:relative;
+  display:flex;
+  align-items:flex-start;
+  gap:4px;
+  line-height:1.4;
+  min-height:2.0em;
+}
+
+.record-star{
+  font-size:14px;
+  cursor:pointer;
+  padding:0 2px;
+  user-select:none;
+  flex-shrink:0;
+  line-height:1.4;
+}
+
+.record-title{
+  flex:1;
+  font-size:14px;
+  font-weight:bold;
+  color:#2196F3;
+  word-break:break-all;
+  white-space:normal;
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+  padding-right:3px;
+  line-height:1.4;
+}
+
+.record-time{
+  position:absolute;
+  right:0;
+  bottom:0;
+  font-size:12px;
+  color:#333;
+  background:#eee;
+  padding:2px 6px;
+  border-radius:6px;
+  line-height:1.3;
+  z-index:10;
+  pointer-events:none;
+}
+
+.record-people{
+  flex-grow:1;
+  margin:2px 0;
+  overflow-y:auto;
+  scrollbar-width:thin;
+}
+
+.record-note{
+  margin:0 0 2px 0;
+  padding:2px 4px;
+  background:#f9f9f9;
+  border-radius:4px;
+  font-size:12px;
+  line-height:1.3;
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+  word-break:break-all;
+}
+
+.record-btns{
+  display:flex;
+  gap:2px;
+  flex-shrink:0;
+}
+.record-btns button{flex:1;padding:2px;font-size:12px}
 
 .all-page{display:none}
 .star-page{display:none}
+.trash-page{display:none}
 
-.modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:none;justify-content:center;align-items:center;padding:10px}
-.modal-content{background:#fff;border-radius:12px;width:100%;max-width:400px;padding:16px}
-.modal-title{font-size:16px;font-weight:bold;margin-bottom:10px}
-.modal-textarea{width:100%;height:180px;padding:10px;border-radius:6px;border:1px solid #ccc;font-size:14px;margin-bottom:8px}
+/* ===== 修复后的弹窗样式 ===== */
+.modal{
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:rgba(0,0,0,0.5);
+  display:none;
+  justify-content:center;
+  align-items:center;
+  padding:10px;
+  z-index:9999;
+}
+.modal-content{
+  background:#fff;
+  border-radius:12px;
+  width:100%;
+  max-width:400px;
+  padding:16px;
+}
+.modal-title{
+  font-size:16px;
+  font-weight:bold;
+  margin-bottom:10px;
+}
+.modal-textarea{
+  width:100%;
+  height:180px;
+  padding:10px;
+  border-radius:6px;
+  border:1px solid #ccc;
+  font-size:14px;
+  margin-bottom:8px;
+}
 
-#previewModal {position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);display:none;justify-content:center;align-items:center;padding:10px;z-index:9999}
-#previewCard {background:#fff;border-radius:12px;max-width:360px;width:100%;padding:20px}
-#previewText {white-space:pre-line;background:#f4f4f9;padding:10px;border-radius:6px;margin:10px 0;font-size:14px}
+/* 复制预览弹窗 */
+#previewModal {
+  background:rgba(0,0,0,0.6);
+  z-index:9999;
+}
+#previewCard {
+  background:#fff;
+  border-radius:12px;
+  max-width:360px;
+  width:100%;
+  padding:20px;
+}
+#previewText {
+  white-space:pre-line;
+  background:#f4f4f9;
+  padding:10px;
+  border-radius:6px;
+  margin:10px 0;
+  font-size:14px;
+}
 
-#editPeopleModal {position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:none;justify-content:center;align-items:center;padding:10px;z-index:9998}
-#editPeopleContent {background:#fff;border-radius:12px;max-width:380px;width:100%;padding:20px}
-#editPeopleGrid {display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:15px 0;max-height:300px;overflow-y:auto;padding:8px;border:1px solid #eee;border-radius:8px}
-#editPeopleGrid .item {font-size:13px;padding:10px 4px}
+/* 编辑人员弹窗 */
+#editPeopleModal {
+  z-index:9998;
+}
+#editPeopleGrid {
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:6px;
+  margin:15px 0;
+  max-height:300px;
+  overflow-y:auto;
+  padding:8px;
+  border:1px solid #eee;
+  border-radius:8px;
+}
+#editPeopleGrid .item {
+  font-size:13px;
+  padding:10px 4px;
+}
 
-#noteModal {position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:none;justify-content:center;align-items:center;padding:10px;z-index:9997}
+/* 备注弹窗 */
+#noteModal {
+  z-index:9997;
+}
+
+/* 密码弹窗样式 */
+#passwordModal {
+  background: rgba(0,0,0,0.6);
+  z-index: 10000;
+}
+.password-box {
+  background: #fff;
+  padding: 20px;
+  border-radius: 12px;
+  width: 280px;
+  text-align: center;
+}
+.password-box input {
+  margin: 10px 0;
+  text-align: center;
+  font-size: 16px;
+  letter-spacing: 4px;
+}
+
+/* 可拖动iframe样式 */
+#adminIframeContainer {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 400px;
+  height: 400px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 0 20px rgba(0,0,0,0.2);
+  z-index: 9999;
+  display: none;
+}
+#iframeHeader {
+  height: 36px;
+  background: #9C27B0;
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 12px 12px 0 0;
+  cursor: move;
+  font-weight: bold;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+#closeIframeBtn {
+  background: #fff;
+  color: #9C27B0;
+  border: none;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  width: auto;
+}
+#adminIframe {
+  width: 100%;
+  height: calc(100% - 36px);
+  border: none;
+}
 </style>
 
 <body>
-
 <div class="main-page">
-  <div class="title">快速记事本·状态标记</div>
-  <div class="btn-group">
-    <button class="gray" onclick="openPeopleEdit()">自定名单</button>
-    <button class="gray" onclick="openStatusEdit()">自定选项</button>
+  <div class="page-title">快速记事</div>
+  <div class="top-btn-bar">
+    <button onclick="openPeopleEdit()">自定名单</button>
+    <button onclick="openStatusEdit()">自定选项</button>
   </div>
 
   <div class="main-grid" id="mainGrid"></div>
 
   <div class="input-row">
-    <input id="customInput" placeholder="仅手动输入" autocomplete="off">
-    <select id="leaderSelect">
-    </select>
+    <input id="customInput" placeholder="手动输入标题" autocomplete="off">
+    <select id="leaderSelect"></select>
   </div>
 
   <div class="level-row">
@@ -99,38 +324,61 @@ button.star{background:#FFB800;color:#222;font-weight:bold}
     <select id="lv4"></select>
   </div>
 
-  <div class="btn-group">
-    <button onclick="generate()">开始生成</button>
-    <button class="gray" onclick="clearSelected()">清除选中</button>
-    <button class="star" onclick="showStarPage()">我的收藏</button>
+  <div class="btn-bar">
+    <button onclick="generate()">生成</button>
+    <button class="gray" onclick="clearSelected()">重选</button>
+    <button class="gray" onclick="showAllPage()">全部</button>
+    <button class="star" onclick="showStarPage()">收藏</button>
+    <button class="gray" onclick="showTrashPage()">回收站</button>
   </div>
 
-  <div class="title">最近5条·状态可追踪</div>
   <div id="recentRecords"></div>
-  <button class="gray" onclick="showAllPage()">查看所有记录</button>
+
+  <!-- ========== 关键修改：底部按钮布局 ========== -->
+  <!-- 第一行：显示更多 + 打开后台 并列 -->
+  <div style="display:flex;gap:4px;margin-top:8px;">
+    <button class="gray" style="flex:1;" onclick="showMore()">显示更多</button>
+    <button class="gray" style="flex:1;" onclick="openPasswordModal()">打开后台</button>
+  </div>
+  <!-- 第二行：新增两个超链接按钮 -->
+  <div style="display:flex;gap:4px;margin-top:6px;">
+    <a href="hengban.html" target="_blank" style="flex:1;text-decoration:none;">
+      <button class="gray" style="width:100%;">横版页面</button>
+    </a>
+    <a href="#" target="_blank" style="flex:1;text-decoration:none;">
+      <button class="gray" style="width:100%;">自定义链接</button>
+    </a>
+  </div>
+  <!-- =========================================== -->
 </div>
 
 <div class="all-page">
-  <div class="btn-group">
-    <button class="gray" onclick="showMainPage()">← 返回</button>
-    <button class="star" onclick="showStarPage()">我的收藏</button>
-    <button class="red" onclick="clearAllRecords()">清空全部记录</button>
+  <div class="btn-bar">
+    <button class="gray" onclick="showMainPage()">返回</button>
+    <button class="star" onclick="showStarPage()">收藏</button>
+    <button class="red" onclick="clearAllRecords()">清空</button>
   </div>
-  <div class="title">全部历史记录</div>
   <div id="allRecords"></div>
 </div>
 
 <div class="star-page">
-  <div class="btn-group">
-    <button class="gray" onclick="showMainPage()">← 返回</button>
+  <div class="btn-bar">
+    <button class="gray" onclick="showMainPage()">返回</button>
     <button class="red" onclick="clearStarRecords()">清空收藏</button>
   </div>
-  <div class="title">我的收藏</div>
   <div id="starRecords"></div>
 </div>
 
-<!-- 复制预览 -->
-<div id="previewModal">
+<div class="trash-page">
+  <div class="btn-bar">
+    <button class="gray" onclick="showMainPage()">返回</button>
+    <button class="red" onclick="clearTrash()">清空回收站</button>
+  </div>
+  <div id="trashRecords"></div>
+</div>
+
+<!-- 复制预览弹窗 -->
+<div id="previewModal" class="modal">
   <div id="previewCard">
     <div style="font-weight:bold;font-size:16px;margin-bottom:8px">复制成功</div>
     <div id="previewText"></div>
@@ -138,12 +386,14 @@ button.star{background:#FFB800;color:#222;font-weight:bold}
   </div>
 </div>
 
-<!-- 追加编辑 -->
+<!-- 编辑人员弹窗 -->
 <div id="editPeopleModal" class="modal">
   <div class="modal-content">
-    <div class="modal-title">重新选择名单</div>
+    <div class="modal-title">编辑记录</div>
+    <textarea class="modal-textarea" id="editStatus" placeholder="修改状态标题" style="height:80px;resize:none;"></textarea>
+    <select id="editLeaderSelect" style="margin-bottom:8px;width:100%;padding:8px;border-radius:6px;border:1px solid #ccc;"></select>
     <div id="editPeopleGrid"></div>
-    <div class="btn-group">
+    <div class="btn-bar">
       <button onclick="saveEditedPeople()">保存修改</button>
       <button class="gray" onclick="closeEditPeopleModal()">取消</button>
     </div>
@@ -155,260 +405,293 @@ button.star{background:#FFB800;color:#222;font-weight:bold}
   <div class="modal-content">
     <div class="modal-title">编辑备注</div>
     <textarea class="modal-textarea" id="noteInput"></textarea>
-    <div class="btn-group">
+    <div class="btn-bar">
       <button onclick="saveNote()">保存</button>
       <button class="gray" onclick="closeNoteModal()">取消</button>
     </div>
   </div>
 </div>
 
-<!-- 人员+负责人编辑 -->
+<!-- 人员+负责人编辑弹窗 -->
 <div id="peopleModal" class="modal">
   <div class="modal-content">
-    <div class="modal-title">编辑全部名单（一行一个）</div>
+    <div class="modal-title">编辑名单（一行一个）</div>
     <textarea class="modal-textarea" id="peopleText"></textarea>
-    <div class="modal-title">编辑负责人名单（一行一个）</div>
+    <div class="modal-title">编辑负责人</div>
     <textarea class="modal-textarea" id="leaderText"></textarea>
-    <div class="btn-group">
+    <div class="btn-bar">
       <button onclick="savePeopleAndLeader()">保存</button>
       <button class="gray" onclick="closePeopleModal()">取消</button>
     </div>
   </div>
 </div>
 
-<!-- 状态编辑 -->
+<!-- 状态编辑弹窗 -->
 <div id="statusModal" class="modal">
   <div class="modal-content">
-    <div class="modal-title">4级状态编辑（格式：1>2>3>4）</div>
+    <div class="modal-title">编辑4级选项（格式：1>2>3>4）</div>
     <textarea class="modal-textarea" id="statusText"></textarea>
-    <div class="btn-group">
+    <div class="btn-bar">
       <button onclick="saveStatus()">保存</button>
       <button class="gray" onclick="closeStatusModal()">取消</button>
     </div>
   </div>
 </div>
 
+<!-- 密码弹窗 -->
+<div id="passwordModal" class="modal">
+  <div class="password-box">
+    <div style="font-weight:bold;margin-bottom:8px;">请输入后台密码</div>
+    <input type="password" id="adminPassword" placeholder="??????">
+    <div style="display:flex;gap:8px;">
+      <button class="gray" style="flex:1;" onclick="closePasswordModal()">取消</button>
+      <button style="flex:1;" onclick="checkAdminPassword()">确定</button>
+    </div>
+  </div>
+</div>
+
+<!-- 后台iframe -->
+<div id="adminIframeContainer">
+  <div id="iframeHeader">
+    后台面板
+    <button id="closeIframeBtn" onclick="hideAdminIframe()">关闭</button>
+  </div>
+  <iframe id="adminIframe" src="houtai.html"></iframe>
+</div>
+
 <script>
+
+// 监听iframe子页面发来的刷新指令
+window.addEventListener('message', function(e) {
+  // 只响应指定的刷新消息，避免误触发
+  if (e.data?.type === 'REFRESH_PARENT') {
+    // 强制刷新主页（不走缓存）
+    window.location.reload(true);
+  }
+});
+
 const STORAGE_KEY = 'jichibang_records';
 const PEOPLE_KEY = 'cfg_people';
 const LEADER_KEY = 'cfg_leader';
 const STATUS_KEY = 'cfg_status4';
-const week = ["周日","周一","周二","周三","周四","周五","周六"];
+const TRASH_KEY = 'jichibang_trash';
+const week = ["日","一","二","三","四","五","六"];
 
 let currentEditIndex = -1;
 let currentRecordPeopleMap = {};
 let currentNoteIndex = -1;
+let showLimit = 5;
 
-// 人员
-function getPeopleText(){
-  return localStorage.getItem(PEOPLE_KEY) || "人1\n人2\n人3\n人4\n人5";
-}
-function setPeopleText(t){ localStorage.setItem(PEOPLE_KEY,t) }
-function getPeople(){
-  return getPeopleText().split("\n").map(x=>x.trim()).filter(Boolean);
-}
-
-// 负责人
-function getLeaderText(){
-  return localStorage.getItem(LEADER_KEY) || "组长A\n组长B\n组长C";
-}
-function setLeaderText(t){ localStorage.setItem(LEADER_KEY,t) }
-function getLeaders(){
-  return getLeaderText().split("\n").map(x=>x.trim()).filter(Boolean);
+function generateUniqueId(){
+  const d = new Date();
+  const Y = d.getFullYear();
+  const M = String(d.getMonth()+1).padStart(2,'0');
+  const D = String(d.getDate()).padStart(2,'0');
+  const H = String(d.getHours()).padStart(2,'0');
+  const m = String(d.getMinutes()).padStart(2,'0');
+  const time14 = Y+M+D+H+m;
+  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+  const r1 = letters[Math.floor(Math.random()*letters.length)];
+  const r2 = letters[Math.floor(Math.random()*letters.length)];
+  return time14+r1+r2;
 }
 
-function loadLeaderSelect(){
-  const sel = document.getElementById("leaderSelect");
-  sel.innerHTML = "";
-  
-  const emptyOpt = document.createElement("option");
-  emptyOpt.value = "";
-  emptyOpt.textContent = "不选择负责人";
-  emptyOpt.className = "select-placeholder";
-  sel.appendChild(emptyOpt);
-
-  getLeaders().forEach(name=>{
-    const o = document.createElement("option");
-    o.value=name; o.textContent=name;
-    sel.appendChild(o);
+// ===== 修复后的弹窗核心逻辑 =====
+function showModal(id){
+  // 先隐藏所有弹窗，再显示目标弹窗
+  hideAllModals();
+  document.getElementById(id).style.display = "flex";
+}
+function hideAllModals(){
+  document.querySelectorAll('.modal').forEach(m=>{
+    m.style.display = "none";
   });
 }
 
-// 状态树
+// 各弹窗关闭函数
+function closePreview(){ hideAllModals() }
+function closeEditPeopleModal(){ 
+  hideAllModals();
+  currentEditIndex=-1;
+  currentRecordPeopleMap = {};
+}
+function closeNoteModal(){ 
+  hideAllModals();
+  currentNoteIndex=-1;
+}
+function closePeopleModal(){ hideAllModals() }
+function closeStatusModal(){ hideAllModals() }
+function closePasswordModal(){ hideAllModals() }
+
+let isDragging = false;
+let dragStartX,dragStartY,iframeX,iframeY;
+document.getElementById('iframeHeader').addEventListener('mousedown',startDrag);
+document.addEventListener('mousemove',drag);
+document.addEventListener('mouseup',stopDrag);
+
+function startDrag(e){
+  isDragging = true;
+  const c = document.getElementById('adminIframeContainer');
+  dragStartX = e.clientX; dragStartY = e.clientY;
+  iframeX = parseInt(c.style.left || c.offsetLeft);
+  iframeY = parseInt(c.style.top || c.offsetTop);
+  document.body.style.userSelect = 'none';
+}
+function drag(e){
+  if(!isDragging) return;
+  const c = document.getElementById('adminIframeContainer');
+  const dx = e.clientX - dragStartX;
+  const dy = e.clientY - dragStartY;
+  c.style.left = iframeX+dx+'px';
+  c.style.top = iframeY+dy+'px';
+  c.style.transform = 'none';
+}
+function stopDrag(){
+  isDragging = false;
+  document.body.style.userSelect = 'auto';
+}
+
+function showAdminIframe(){document.getElementById('adminIframeContainer').style.display='block'}
+function hideAdminIframe(){
+  document.getElementById('adminIframeContainer').style.display='none';
+  // 关闭时自动刷新主页
+  location.reload();
+}
+
+// 密码弹窗逻辑
+function openPasswordModal(){
+  showModal('passwordModal');
+  document.getElementById("adminPassword").value = "";
+}
+function checkAdminPassword(){
+  const pwd = document.getElementById("adminPassword").value.trim();
+  if(pwd==="666666"){
+    hideAllModals();
+    showAdminIframe();
+  }else{
+    alert("密码错误");
+  }
+}
+
+function getTrash(){try{return JSON.parse(localStorage.getItem(TRASH_KEY))||[]}catch{return[]}}
+function setTrash(arr){
+  arr=arr.filter(Boolean);
+  if(arr.length>100)arr=arr.slice(-100);
+  localStorage.setItem(TRASH_KEY,JSON.stringify(arr));
+}
+function addToTrash(item){const t=getTrash();t.push(item);setTrash(t)}
+function addManyToTrash(items){const t=getTrash();t.push(...items);setTrash(t)}
+
+function getPeopleText(){return localStorage.getItem(PEOPLE_KEY)||"人1\n人2\n人3\n人4\n人5"}
+function setPeopleText(t){localStorage.setItem(PEOPLE_KEY,t)}
+function getPeople(){return getPeopleText().split("\n").map(x=>x.trim()).filter(Boolean)}
+
+function getLeaderText(){return localStorage.getItem(LEADER_KEY)||"组长A\n组长B\n组长C"}
+function setLeaderText(t){localStorage.setItem(LEADER_KEY,t)}
+function getLeaders(){return getLeaderText().split("\n").map(x=>x.trim()).filter(Boolean)}
+
+function loadLeaderSelect(){
+  const sel=document.getElementById("leaderSelect");sel.innerHTML="";
+  const emptyOpt=document.createElement("option");emptyOpt.value="";emptyOpt.textContent="不选负责人";
+  sel.appendChild(emptyOpt);getLeaders().forEach(name=>{const o=document.createElement("option");o.value=name;o.textContent=name;sel.appendChild(o)});
+}
+
 function getStatusText(){
-  return localStorage.getItem(STATUS_KEY) || `出勤>上午>第一节>正常
+  return localStorage.getItem(STATUS_KEY)||`出勤>上午>第一节>正常
 出勤>上午>第一节>迟到
 出勤>上午>第二节>正常
 出勤>下午>第三节>正常
 请假>病假>居家>康复中
 请假>事假>外出>处理私事`;
 }
-function setStatusText(t){ localStorage.setItem(STATUS_KEY,t) }
+function setStatusText(t){localStorage.setItem(STATUS_KEY,t)}
 
 function getStatusTree(){
-  const tree = {};
+  const tree={};
   getStatusText().split("\n").map(x=>x.trim()).filter(Boolean).forEach(line=>{
-    const [a,b,c,d] = line.split(">").map(x=>x.trim()).filter(Boolean);
-    if(!a) return;
-    if(!tree[a]) tree[a]={};
-    if(!tree[a][b]) tree[a][b]={};
-    if(!tree[a][b][c]) tree[a][b][c]=[];
-    if(d && !tree[a][b][c].includes(d)) tree[a][b][c].push(d);
+    const [a,b,c,d]=line.split(">").map(x=>x.trim()).filter(Boolean);
+    if(!a)return;if(!tree[a])tree[a]={};if(!tree[a][b])tree[a][b]={};if(!tree[a][b][c])tree[a][b][c]=[];
+    if(d&&!tree[a][b][c].includes(d))tree[a][b][c].push(d);
   });
   return tree;
 }
 
-// 人员+负责人保存
+// 弹窗打开函数修复
 function openPeopleEdit(){
   document.getElementById("peopleText").value = getPeopleText();
   document.getElementById("leaderText").value = getLeaderText();
-  document.getElementById("peopleModal").style.display = "flex";
+  showModal('peopleModal');
 }
-function closePeopleModal(){ document.getElementById("peopleModal").style.display = "none"; }
+function openStatusEdit(){
+  document.getElementById("statusText").value = getStatusText();
+  showModal('statusModal');
+}
+
 function savePeopleAndLeader(){
   setPeopleText(document.getElementById("peopleText").value);
   setLeaderText(document.getElementById("leaderText").value);
-  closePeopleModal(); renderAll();
+  closePeopleModal();renderAll();
 }
 
-// 状态
-function openStatusEdit(){
-  document.getElementById("statusText").value = getStatusText();
-  document.getElementById("statusModal").style.display = "flex";
-}
-function closeStatusModal(){ document.getElementById("statusModal").style.display = "none"; }
 function saveStatus(){
   setStatusText(document.getElementById("statusText").value);
-  closeStatusModal(); renderAll();
+  closeStatusModal();renderAll();
 }
 
-// 四级联动
 function loadLv1(){
-  const t=getStatusTree();
-  const sel=document.getElementById("lv1");
-  sel.innerHTML = "";
-
-  const emptyOpt = document.createElement("option");
-  emptyOpt.value = "";
-  emptyOpt.textContent = "不选择";
-  emptyOpt.className = "select-placeholder";
-  sel.appendChild(emptyOpt);
-
-  Object.keys(t).forEach(k=>{
-    const o=document.createElement("option");o.value=k;o.textContent=k;sel.appendChild(o);
-  });
-  loadLv2();
+  const t=getStatusTree();const sel=document.getElementById("lv1");sel.innerHTML="";
+  const emptyOpt=document.createElement("option");emptyOpt.value="";emptyOpt.textContent="不选择";
+  sel.appendChild(emptyOpt);Object.keys(t).forEach(k=>{const o=document.createElement("option");o.value=k;o.textContent=k;sel.appendChild(o)});loadLv2();
 }
-
 function loadLv2(){
-  const t=getStatusTree();
-  const v1=document.getElementById("lv1").value;
-  const sel=document.getElementById("lv2");
-  sel.innerHTML = "";
-
-  const emptyOpt = document.createElement("option");
-  emptyOpt.value = "";
-  emptyOpt.textContent = "不选择";
-  emptyOpt.className = "select-placeholder";
-  sel.appendChild(emptyOpt);
-
-  if(v1 && t[v1]){
-    Object.keys(t[v1]).forEach(k=>{
-      const o=document.createElement("option");o.value=k;o.textContent=k;sel.appendChild(o);
-    });
-  }
-  loadLv3();
+  const t=getStatusTree();const v1=document.getElementById("lv1").value;const sel=document.getElementById("lv2");sel.innerHTML="";
+  const emptyOpt=document.createElement("option");emptyOpt.value="";emptyOpt.textContent="不选择";
+  sel.appendChild(emptyOpt);if(v1&&t[v1])Object.keys(t[v1]).forEach(k=>{const o=document.createElement("option");o.value=k;o.textContent=k;sel.appendChild(o)});loadLv3();
 }
-
 function loadLv3(){
-  const t=getStatusTree();
-  const v1=document.getElementById("lv1").value;
-  const v2=document.getElementById("lv2").value;
-  const sel=document.getElementById("lv3");
-  sel.innerHTML = "";
-
-  const emptyOpt = document.createElement("option");
-  emptyOpt.value = "";
-  emptyOpt.textContent = "不选择";
-  emptyOpt.className = "select-placeholder";
-  sel.appendChild(emptyOpt);
-
-  if(v1 && v2 && t[v1] && t[v1][v2]){
-    Object.keys(t[v1][v2]).forEach(k=>{
-      const o=document.createElement("option");o.value=k;o.textContent=k;sel.appendChild(o);
-    });
-  }
-  loadLv4();
+  const t=getStatusTree();const v1=document.getElementById("lv1").value;const v2=document.getElementById("lv2").value;const sel=document.getElementById("lv3");sel.innerHTML="";
+  const emptyOpt=document.createElement("option");emptyOpt.value="";emptyOpt.textContent="不选择";
+  sel.appendChild(emptyOpt);if(v1&&v2&&t[v1]&&t[v1][v2])Object.keys(t[v1][v2]).forEach(k=>{const o=document.createElement("option");o.value=k;o.textContent=k;sel.appendChild(o)});loadLv4();
 }
-
 function loadLv4(){
-  const t=getStatusTree();
-  const v1=document.getElementById("lv1").value;
-  const v2=document.getElementById("lv2").value;
-  const v3=document.getElementById("lv3").value;
-  const sel=document.getElementById("lv4");
-  sel.innerHTML = "";
-
-  const emptyOpt = document.createElement("option");
-  emptyOpt.value = "";
-  emptyOpt.textContent = "不选择";
-  emptyOpt.className = "select-placeholder";
-  sel.appendChild(emptyOpt);
-
-  if(v1 && v2 && v3 && t[v1] && t[v1][v2] && t[v1][v2][v3]){
-    t[v1][v2][v3].forEach(k=>{
-      const o=document.createElement("option");o.value=k;o.textContent=k;sel.appendChild(o);
-    });
-  }
+  const t=getStatusTree();const v1=document.getElementById("lv1").value;const v2=document.getElementById("lv2").value;const v3=document.getElementById("lv3").value;const sel=document.getElementById("lv4");sel.innerHTML="";
+  const emptyOpt=document.createElement("option");emptyOpt.value="";emptyOpt.textContent="不选择";
+  sel.appendChild(emptyOpt);if(v1&&v2&&v3&&t[v1]&&t[v1][v2]&&t[v1][v2][v3])t[v1][v2][v3].forEach(k=>{const o=document.createElement("option");o.value=k;o.textContent=k;sel.appendChild(o)});
 }
 
 function renderPeople(){
-  const g=document.getElementById("mainGrid");
-  g.innerHTML="";
-  getPeople().forEach(name=>{
-    const d=document.createElement("div");
-    d.className="item";
-    d.textContent=name;
-    d.onclick=()=>d.classList.toggle("active");
-    g.appendChild(d);
-  });
+  const g=document.getElementById("mainGrid");g.innerHTML="";
+  getPeople().forEach(name=>{const d=document.createElement("div");d.className="item";d.textContent=name;d.onclick=()=>d.classList.toggle("active");g.appendChild(d)});
 }
 
 function now(){
-  const d=new Date();
-  return week[d.getDay()]+" "+d.toLocaleString();
+  const d = new Date();
+  const wd = week[d.getDay()];
+  const Y = d.getFullYear();
+  const M = String(d.getMonth()+1).padStart(2,'0');
+  const D = String(d.getDate()).padStart(2,'0');
+  const date = Y + M + D;
+  const hh = String(d.getHours()).padStart(2,'0');
+  const mm = String(d.getMinutes()).padStart(2,'0');
+  return date + ' ' + hh + ':' + mm + wd;
 }
-function getRecords(){
-  try{return JSON.parse(localStorage.getItem(STORAGE_KEY))||[]}catch{return[]}
-}
+
+function getRecords(){try{return JSON.parse(localStorage.getItem(STORAGE_KEY))||[]}catch{return[]}}
 function setRecords(r){localStorage.setItem(STORAGE_KEY,JSON.stringify(r))}
 
-// 生成
 function generate(){
   const custom=document.getElementById("customInput").value.trim();
   const leader=document.getElementById("leaderSelect").value;
-  const a=document.getElementById("lv1").value;
-  const b=document.getElementById("lv2").value;
-  const c=document.getElementById("lv3").value;
-  const d=document.getElementById("lv4").value;
+  const a=document.getElementById("lv1").value;const b=document.getElementById("lv2").value;const c=document.getElementById("lv3").value;const d=document.getElementById("lv4").value;
   const selected=[...document.querySelectorAll(".item.active")].map(x=>x.textContent);
-
-  if(selected.length===0){alert("请先点选人物再生成");return;}
-
-  let status;
-  if(custom){
-    status=custom;
-  }else{
-    const parts=[a,b,c,d].filter(Boolean);
-    if(parts.length===0){
-      status = "";
-    }else{
-      status=parts.join(" - ");
-    }
-  }
-
+  if(selected.length===0){alert("请选择人物");return;}
+  const levelParts=[a,b,c,d].filter(Boolean);
+  const hasTitle=custom!==''||levelParts.length>0;
+  if(!hasTitle){alert("请输入标题或选择状态");return;}
+  let status=custom?custom:levelParts.join(" - ");
   const list=getRecords();
   list.unshift({
+    id:generateUniqueId(),
     time:now(),
     status:status,
     people:selected.map(name=>({name,active:true,type:"normal"})),
@@ -417,265 +700,278 @@ function generate(){
     star:false
   });
   setRecords(list);
-
   document.getElementById("customInput").value="";
-  document.getElementById("leaderSelect").selectedIndex = 0;
-  clearSelected();
-  loadLv1();
+  document.getElementById("leaderSelect").selectedIndex=0;
+  clearSelected();loadLv1();renderRecords();alert("已生成");
+}
+
+function clearSelected(){document.querySelectorAll(".item.active").forEach(x=>x.classList.remove("active"))}
+
+function showMore(){
+  showLimit+=5;
   renderRecords();
-  alert("已生成");
 }
 
-function clearSelected(){
-  document.querySelectorAll(".item.active").forEach(x=>x.classList.remove("active"));
-}
-
-// 复制
 function copyRecord(rec){
-  const activeNames=rec.people.filter(o=>o.active).map(o=>o.name).join("、");
-  const leaderText=rec.leader?" 负责人："+rec.leader:"";
-  const copyText=`通知：${activeNames}，${rec.status}${leaderText}`;
+  const activeNames=rec.people.filter(o=>o.active).map(o=>o.name);
+  if(activeNames.length===0){alert("暂无激活人员");return;}
+  const copyText=`${activeNames.join("、")}，${rec.status}${rec.leader?" 负责人："+rec.leader:""}`;
   navigator.clipboard.writeText(copyText);
   document.getElementById("previewText").innerText=copyText;
-  document.getElementById("previewModal").style.display = "flex";
+  showModal('previewModal');
 }
-function closePreview(){document.getElementById("previewModal").style.display="none";}
 
-// 追加人员
 function openEditPeopleModal(index){
-  currentEditIndex = index;
-  const records = getRecords();
-  const target = records[index];
-  
-  currentRecordPeopleMap = {};
-  target.people.forEach(obj => {
-    currentRecordPeopleMap[obj.name] = obj.active;
+  currentEditIndex=index;
+  const records=getRecords();const target=records[index];
+  currentRecordPeopleMap={};
+  target.people.forEach(obj=>{currentRecordPeopleMap[obj.name]=obj.active});
+  const grid=document.getElementById("editPeopleGrid");grid.innerHTML="";
+  getPeople().forEach(name=>{
+    const item=document.createElement("div");item.className="item";
+    if(currentRecordPeopleMap.hasOwnProperty(name))item.classList.add("active");
+    item.textContent=name;item.onclick=()=>item.classList.toggle("active");grid.appendChild(item);
   });
+  document.getElementById("editStatus").value=target.status||"";
+  const leaderSel=document.getElementById("editLeaderSelect");leaderSel.innerHTML="";
+  const emptyOpt=document.createElement("option");emptyOpt.value="";emptyOpt.textContent="不选负责人";
+  leaderSel.appendChild(emptyOpt);
+  getLeaders().forEach(name=>{
+    const o=document.createElement("option");o.value=name;o.textContent=name;
+    if(name===target.leader)o.selected=true;leaderSel.appendChild(o);
+  });
+  showModal('editPeopleModal');
+}
 
-  const grid = document.getElementById("editPeopleGrid");
-  grid.innerHTML = "";
-  getPeople().forEach(name => {
-    const item = document.createElement("div");
-    item.className = "item";
-    if (currentRecordPeopleMap.hasOwnProperty(name)) {
-      item.classList.add("active");
-    }
-    item.textContent = name;
-    item.onclick = () => item.classList.toggle("active");
-    grid.appendChild(item);
-  });
-  document.getElementById("editPeopleModal").style.display = "flex";
-}
-function closeEditPeopleModal(){
-  currentEditIndex = -1;
-  currentRecordPeopleMap = {};
-  document.getElementById("editPeopleModal").style.display = "none";
-}
 function saveEditedPeople(){
-  if (currentEditIndex === -1) return;
-  const selectedNames = [...document.querySelectorAll("#editPeopleGrid .item.active")]
-    .map(x => x.textContent.trim()).filter(Boolean);
-  const records = getRecords();
-  const target = records[currentEditIndex];
-  const newPeople = selectedNames.map(name => ({
-    name: name,
-    active: currentRecordPeopleMap[name] ?? true,
-    type: "normal"
-  }));
-  target.people = newPeople;
-  setRecords(records);
-  closeEditPeopleModal();
-  renderRecords();
-  renderStarPage();
-  alert("名单修改成功！");
+  if(currentEditIndex===-1)return;
+  const editStatus=document.getElementById("editStatus").value.trim();
+  if(!editStatus){alert("标题不能为空");return;}
+  const records=getRecords();const target=records[currentEditIndex];
+  const selectedNames=[...document.querySelectorAll("#editPeopleGrid .item.active")].map(x=>x.textContent.trim()).filter(Boolean);
+  target.people=selectedNames.map(name=>({name:name,active:currentRecordPeopleMap[name]??true,type:"normal"}));
+  target.status=editStatus;
+  target.leader=document.getElementById("editLeaderSelect").value;
+  setRecords(records);closeEditPeopleModal();renderRecords();renderStarPage();alert("修改成功");
 }
 
-// 备注功能
 function openNoteModal(index){
-  currentNoteIndex = index;
-  const records = getRecords();
-  document.getElementById("noteInput").value = records[index].note || "";
-  document.getElementById("noteModal").style.display = "flex";
-}
-function closeNoteModal(){
-  currentNoteIndex = -1;
-  document.getElementById("noteModal").style.display = "none";
+  currentNoteIndex=index;
+  const records=getRecords();
+  document.getElementById("noteInput").value=records[index].note||"";
+  showModal('noteModal');
 }
 function saveNote(){
-  if(currentNoteIndex === -1) return;
-  const records = getRecords();
-  records[currentNoteIndex].note = document.getElementById("noteInput").value.trim();
-  setRecords(records);
-  closeNoteModal();
-  renderRecords();
-  renderStarPage();
+  if(currentNoteIndex===-1)return;
+  const records=getRecords();
+  records[currentNoteIndex].note=document.getElementById("noteInput").value.trim();
+  setRecords(records);closeNoteModal();renderRecords();renderStarPage();
 }
 
-// 收藏切换
 function toggleStar(index){
-  const records = getRecords();
-  records[index].star = !records[index].star;
-  setRecords(records);
-  renderRecords();
-  renderStarPage();
+  const records=getRecords();records[index].star=!records[index].star;
+  setRecords(records);renderRecords();renderStarPage();
 }
 
-// 页面切换
 function showMainPage(){
-  document.querySelector(".main-page").style.display = "block";
-  document.querySelector(".all-page").style.display = "none";
-  document.querySelector(".star-page").style.display = "none";
+  document.querySelector(".main-page").style.display="block";
+  document.querySelector(".all-page").style.display="none";
+  document.querySelector(".star-page").style.display="none";
+  document.querySelector(".trash-page").style.display="none";
 }
 function showAllPage(){
-  document.querySelector(".main-page").style.display = "none";
-  document.querySelector(".all-page").style.display = "block";
-  document.querySelector(".star-page").style.display = "none";
+  document.querySelector(".main-page").style.display="none";
+  document.querySelector(".all-page").style.display="block";
+  document.querySelector(".star-page").style.display="none";
+  document.querySelector(".trash-page").style.display="none";
+  renderRecords();
 }
 function showStarPage(){
-  document.querySelector(".main-page").style.display = "none";
-  document.querySelector(".all-page").style.display = "none";
-  document.querySelector(".star-page").style.display = "block";
+  document.querySelector(".main-page").style.display="none";
+  document.querySelector(".all-page").style.display="none";
+  document.querySelector(".star-page").style.display="block";
+  document.querySelector(".trash-page").style.display="none";
   renderStarPage();
 }
+function showTrashPage(){
+  document.querySelector(".main-page").style.display="none";
+  document.querySelector(".all-page").style.display="none";
+  document.querySelector(".star-page").style.display="none";
+  document.querySelector(".trash-page").style.display="block";
+  renderTrashPage();
+}
 
-// 清空
 function clearAllRecords(){
-  if(confirm("确定清空全部记录？")){
-    localStorage.removeItem(STORAGE_KEY);
-    renderRecords();
-    renderStarPage();
-  }
+  if(!confirm("确定清空全部记录？"))return;
+  const records=getRecords();addManyToTrash(records);
+  localStorage.removeItem(STORAGE_KEY);
+  renderRecords();renderStarPage();
 }
 function clearStarRecords(){
-  if(confirm("确定清空所有收藏？")){
-    const records = getRecords();
-    records.forEach(r=>r.star=false);
-    setRecords(records);
-    renderStarPage();
-  }
+  if(!confirm("确定清空收藏？"))return;
+  const records=getRecords();const starItems=records.filter(r=>r.star);
+  addManyToTrash(starItems);records.forEach(r=>r.star=false);
+  setRecords(records);renderStarPage();
+}
+function clearTrash(){
+  if(!confirm("确定清空回收站？"))return;
+  localStorage.removeItem(TRASH_KEY);renderTrashPage();
 }
 
-// 渲染单条记录
+function restoreFromTrash(idx){
+  const trash=getTrash();const item=trash[idx];
+  if(!item)return;
+  const records=getRecords();
+  const hasSameId=records.some(r=>r.id&&item.id&&r.id===item.id);
+  if(hasSameId){alert("ID重复，无法撤回");return;}
+  trash.splice(idx,1);
+  setTrash(trash);
+  records.unshift(item);
+  setRecords(records);
+  renderTrashPage();renderRecords();renderStarPage();
+}
+
+function deleteFromTrash(idx){
+  if(!confirm("确定彻底删除？"))return;
+  const trash=getTrash();trash.splice(idx,1);setTrash(trash);renderTrashPage();
+}
+
 function makeRecordItem(realIndex){
-  const records = getRecords();
-  const rec = records[realIndex];
+  const records=getRecords();const rec=records[realIndex];
+  const card=document.createElement("div");card.className="record-card";
 
-  const card=document.createElement("div");
-  card.className="record-card";
+  const header=document.createElement("div");header.className="record-header";
 
-  const head = document.createElement("div");
-  head.className = "record-head";
+  const starBtn=document.createElement("div");
+  starBtn.className="record-star";
+  starBtn.textContent=rec.star?"★":"☆";
+  starBtn.onclick=()=>toggleStar(realIndex);
+  header.appendChild(starBtn);
 
-  const starBtn = document.createElement("div");
-  starBtn.className = "star-btn";
-  starBtn.textContent = rec.star ? "★" : "☆";
-  starBtn.onclick = () => {
-    toggleStar(realIndex);
-  };
-  head.appendChild(starBtn);
+  const titleBox=document.createElement("div");
+  titleBox.className="record-title";
+  titleBox.textContent=rec.status;
+  header.appendChild(titleBox);
 
-  const st=document.createElement("div");
-  st.className="record-status";
-  st.textContent="状态："+rec.status;
-  head.appendChild(st);
-  card.appendChild(head);
+  const timeBox=document.createElement("div");
+  timeBox.className="record-time";
+  timeBox.textContent=rec.time;
+  header.appendChild(timeBox);
 
-  const tm=document.createElement("div");
-  tm.className="record-time";
-  tm.textContent=rec.time;
-  card.appendChild(tm);
+  card.appendChild(header);
 
-  const pw=document.createElement("div");
-  pw.className="record-people";
+  const pw=document.createElement("div");pw.className="record-people";
   rec.people.forEach((obj,i)=>{
-    const s=document.createElement("span");
-    s.className="pill "+(obj.active?"active":"inactive");
-    s.textContent=obj.name;
+    const s=document.createElement("span");s.className="pill "+(obj.active?"active":"inactive");s.textContent=obj.name;
     s.onclick=()=>{
-      if(!confirm("确定切换该人物状态？"))return;
-      rec.people[i].active = !rec.people[i].active;
-      const all = getRecords();
-      all[realIndex].people = rec.people;
-      setRecords(all);
-      renderRecords();
-      renderStarPage();
+      if(!confirm("确定切换状态？"))return;
+      rec.people[i].active=!rec.people[i].active;
+      const all=getRecords();all[realIndex].people=rec.people;setRecords(all);renderRecords();renderStarPage();
     };
     pw.appendChild(s);
   });
   if(rec.leader){
-    const sp=document.createElement("span");
-    sp.className="pill leader";
-    sp.textContent=rec.leader;
+    const sp=document.createElement("span");sp.className="pill leader";sp.textContent=rec.leader;
     pw.appendChild(sp);
   }
   card.appendChild(pw);
 
   if(rec.note){
-    const noteDiv = document.createElement("div");
-    noteDiv.className = "record-note";
-    noteDiv.textContent = "备注："+rec.note;
+    const noteDiv=document.createElement("div");
+    noteDiv.className="record-note";
+    noteDiv.textContent=rec.note;
     card.appendChild(noteDiv);
   }
 
-  const btns=document.createElement("div");
-  btns.className="record-btns";
-
-  const addBtn=document.createElement("button");
-  addBtn.className="gray"; addBtn.textContent="追加";
-  addBtn.onclick=()=>openEditPeopleModal(realIndex);
-
-  const cpBtn=document.createElement("button");
-  cpBtn.className="gray"; cpBtn.textContent="复制";
+  const btns=document.createElement("div");btns.className="record-btns";
+  const editBtn=document.createElement("button");editBtn.className="gray";editBtn.textContent="编辑";
+  editBtn.onclick=()=>openEditPeopleModal(realIndex);
+  const cpBtn=document.createElement("button");cpBtn.className="gray";cpBtn.textContent="复制";
   cpBtn.onclick=()=>copyRecord(rec);
-
-  const noteBtn=document.createElement("button");
-  noteBtn.className="gray"; noteBtn.textContent="备注";
+  const noteBtn=document.createElement("button");noteBtn.className="gray";noteBtn.textContent="备注";
   noteBtn.onclick=()=>openNoteModal(realIndex);
-
-  const delBtn=document.createElement("button");
-  delBtn.className="red"; delBtn.textContent="删除";
+  const delBtn=document.createElement("button");delBtn.className="red";delBtn.textContent="删除";
   delBtn.onclick=()=>{
-    if(confirm("确定删除？")){
-      const data=getRecords();
-      data.splice(realIndex,1);
-      setRecords(data);
-      renderRecords();
-      renderStarPage();
-    }
+    if(!confirm("确定删除？"))return;
+    const data=getRecords();const delItem=data.splice(realIndex,1)[0];
+    addToTrash(delItem);setRecords(data);renderRecords();renderStarPage();
   };
-
-  btns.append(addBtn,cpBtn,noteBtn,delBtn);
+  btns.append(editBtn,cpBtn,noteBtn,delBtn);
   card.appendChild(btns);
   return card;
 }
 
-// 渲染所有页面
+function makeTrashItem(idx){
+  const trash=getTrash();const rec=trash[idx];
+  const card=document.createElement("div");card.className="record-card";
+
+  const header=document.createElement("div");header.className="record-header";
+
+  const starBtn=document.createElement("div");
+  starBtn.className="record-star";
+  starBtn.textContent=rec.star?"★":"☆";
+  header.appendChild(starBtn);
+
+  const titleBox=document.createElement("div");
+  titleBox.className="record-title";
+  titleBox.textContent=rec.status;
+  header.appendChild(titleBox);
+
+  const timeBox=document.createElement("div");
+  timeBox.className="record-time";
+  timeBox.textContent=rec.time;
+  header.appendChild(timeBox);
+
+  card.appendChild(header);
+
+  const pw=document.createElement("div");pw.className="record-people";
+  rec.people.forEach(obj=>{
+    const s=document.createElement("span");s.className="pill "+(obj.active?"active":"inactive");s.textContent=obj.name;
+    pw.appendChild(s);
+  });
+  if(rec.leader){
+    const sp=document.createElement("span");sp.className="pill leader";sp.textContent=rec.leader;
+    pw.appendChild(sp);
+  }
+  card.appendChild(pw);
+
+  if(rec.note){
+    const noteDiv=document.createElement("div");
+    noteDiv.className="record-note";
+    noteDiv.textContent=rec.note;
+    card.appendChild(noteDiv);
+  }
+
+  const btns=document.createElement("div");btns.className="record-btns";
+  const restoreBtn=document.createElement("button");restoreBtn.className="red";restoreBtn.textContent="撤回";
+  restoreBtn.onclick=()=>restoreFromTrash(idx);
+  const delBtn=document.createElement("button");delBtn.className="red";delBtn.textContent="彻底删除";
+  delBtn.onclick=()=>deleteFromTrash(idx);
+  btns.append(restoreBtn,delBtn);
+  card.appendChild(btns);
+  return card;
+}
+
 function renderRecords(){
   const list=getRecords();
-  const r1=document.getElementById("recentRecords");
-  const r2=document.getElementById("allRecords");
-  r1.innerHTML="";
-  r2.innerHTML="";
-  list.slice(0,5).forEach((rec,i)=>r1.appendChild(makeRecordItem(i)));
-  list.forEach((rec,i)=>r2.appendChild(makeRecordItem(i)));
+  const r1=document.getElementById("recentRecords");const r2=document.getElementById("allRecords");
+  r1.innerHTML="";r2.innerHTML="";
+  list.slice(0,showLimit).forEach((_,i)=>r1.appendChild(makeRecordItem(i)));
+  list.forEach((_,i)=>r2.appendChild(makeRecordItem(i)));
 }
 
 function renderStarPage(){
-  const list=getRecords();
-  const box=document.getElementById("starRecords");
-  box.innerHTML="";
-  list.forEach((item, idx)=>{
-    if(item.star){
-      box.appendChild(makeRecordItem(idx));
-    }
-  })
+  const list=getRecords();const box=document.getElementById("starRecords");box.innerHTML="";
+  list.forEach((item,idx)=>{if(item.star)box.appendChild(makeRecordItem(idx))});
+}
+
+function renderTrashPage(){
+  const trash=getTrash();const box=document.getElementById("trashRecords");box.innerHTML="";
+  trash.forEach((_,idx)=>box.appendChild(makeTrashItem(idx)));
 }
 
 function renderAll(){
-  renderPeople();
-  loadLeaderSelect();
-  loadLv1();
-  renderRecords();
+  renderPeople();loadLeaderSelect();loadLv1();renderRecords();
 }
 
 renderAll();
