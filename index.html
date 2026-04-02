@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<!DOCTYPE html>
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <meta charset="utf-8" name="viewport" content="width=device-width, initial-scale=1.0">
 <title>快速记事</title>
@@ -388,7 +388,7 @@ button.star{background:#FFB800;color:#222;font-weight:bold}
     <div class="page-title">快速记事</div>
     <div style="display:flex;align-items:center;gap:12px;">
       <!-- 立即同步按钮 -->
-      <button id="syncBtn" style="padding:4px 8px;background:#1890ff;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;" onclick="doQuickSync()">立即同步</button>
+      <button id="syncBtn" style="padding:4px 8px;background:#1890ff;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;" onclick="doSync()">立即同步</button>
       <div id="loginStatus" style="position:relative;">
         <span id="loginText" style="font-size:13px;cursor:pointer;">登录</span>
         <!-- 同步状态显示 -->
@@ -561,8 +561,8 @@ button.star{background:#FFB800;color:#222;font-weight:bold}
   <iframe id="adminIframe" src="houtai.html"></iframe>
 </div>
 
-<!-- 同步窗口：打开即加载 tongbu.html -->
-<div id="syncIframeContainer">
+<!-- 同步窗口：持续可见，伴随主页开启 -->
+<div id="syncIframeContainer" style="display: block;">
   <div id="syncHeader">
     同步服务
     <button id="closeSyncBtn" onclick="hideSyncIframe()">关闭</button>
@@ -583,7 +583,7 @@ button.star{background:#FFB800;color:#222;font-weight:bold}
 // ====================== 局部刷新逻辑 ======================
 let isEditing = false;
 
-// 接收同步通知
+// 接收消息通知
 window.addEventListener('message', function(e) {
   if (e.data === 'refreshFromCloud') {
     if (isEditing) {
@@ -592,8 +592,29 @@ window.addEventListener('message', function(e) {
         partialRefreshRecords();
       }, 300);
     } else {
+      // 不再自动刷新页面，而是执行局部刷新
+      console.log('同步完成，执行局部刷新');
       partialRefreshRecords();
     }
+  } else if (e.data === 'loginSuccess') {
+    hideLoginIframe();
+  } else if (e.data.type === 'syncResult') {
+    // 接收同步结果
+    const syncStatus = document.getElementById('syncStatus');
+    if (syncStatus) {
+      const code = e.data.code;
+      const message = e.data.message;
+      syncStatus.textContent = `【${code}】${message}`;
+      syncStatus.style.display = 'block';
+      
+      // 3秒后隐藏同步状态
+      setTimeout(() => {
+        syncStatus.style.display = 'none';
+      }, 3000);
+    }
+  } else if (e.data.type === 'loginSyncReady') {
+    // 接收同步iframe登录同步就绪通知
+    console.log('同步iframe登录同步就绪');
   }
 });
 
@@ -678,8 +699,6 @@ function closeNoteModal(){
 function closePeopleModal(){ hideAllModals() }
 function closeStatusModal(){ hideAllModals() }
 function closePasswordModal(){
-  // 清空密码输入框
-  document.getElementById('adminPassword').value = '';
   hideAllModals()
 }
 
@@ -718,8 +737,8 @@ function hideSyncIframe() {
   document.getElementById('syncIframeContainer').style.display = 'none';
 }
 
-// 快速同步函数
-function doQuickSync() {
+// 同步函数 - 与tongbu.html中的doSync()效果一致
+function doSync() {
   // 检查用户是否登录
   const yonghuID = localStorage.getItem('yonghuID');
   if (!yonghuID) {
@@ -735,24 +754,43 @@ function doQuickSync() {
   
   // 从tongbu.html iframe调用同步
   const syncIframe = document.getElementById('syncIframe');
-  try {
-    // 尝试调用tongbu.html中的doSync方法
-    syncIframe.contentWindow.doSync();
-    console.log('已调用tongbu.html的doSync方法');
+  const syncIframeContainer = document.getElementById('syncIframeContainer');
+  
+  // 显示同步窗口
+  syncIframeContainer.style.display = 'block';
+  
+  // 检查iframe是否已经加载了tongbu.html
+  if (syncIframe.src === '' || !syncIframe.src.includes('tongbu.html')) {
+    // 加载tongbu.html
+    syncIframe.src = 'tongbu.html';
     
-    // 3秒后隐藏同步状态
-    setTimeout(() => {
-      syncStatus.textContent = '同步完成';
+    // 等待iframe加载完成后再执行同步
+    syncIframe.onload = function() {
+      try {
+        // 尝试调用tongbu.html中的doSync方法
+        syncIframe.contentWindow.doSync();
+        console.log('已调用tongbu.html的doSync方法');
+      } catch (e) {
+        console.error('调用tongbu.html的doSync失败:', e);
+        syncStatus.textContent = '同步失败';
+        setTimeout(() => {
+          syncStatus.style.display = 'none';
+        }, 3000);
+      }
+    };
+  } else {
+    // iframe已经加载了tongbu.html，直接调用doSync方法
+    try {
+      // 尝试调用tongbu.html中的doSync方法
+      syncIframe.contentWindow.doSync();
+      console.log('已调用tongbu.html的doSync方法');
+    } catch (e) {
+      console.error('调用tongbu.html的doSync失败:', e);
+      syncStatus.textContent = '同步失败';
       setTimeout(() => {
         syncStatus.style.display = 'none';
-      }, 1000);
-    }, 3000);
-  } catch (e) {
-    console.error('调用tongbu.html的doSync失败:', e);
-    syncStatus.textContent = '同步失败';
-    setTimeout(() => {
-      syncStatus.style.display = 'none';
-    }, 3000);
+      }, 3000);
+    }
   }
 }
 
@@ -794,8 +832,33 @@ function hideLoginIframe() {
   document.getElementById('loginIframeContainer').style.display = 'none';
   // 登录后刷新登录状态
   updateLoginStatus();
-  // 登录成功后刷新页面
-  location.reload();
+  
+  // 检查用户是否真的登录成功
+  const yonghuID = localStorage.getItem('yonghuID');
+  if (yonghuID) {
+    // 用户登录成功，通知同步iframe登录状态变化
+    notifySyncIframe();
+    
+    // 显示同步窗口，让用户看到同步过程
+    document.getElementById('syncIframeContainer').style.display = 'block';
+    
+    // 执行一次主动刷新
+    console.log('登录成功，开始同步数据');
+    
+    // 执行两次间隔一秒的刷新
+    setTimeout(() => {
+      console.log('第一次刷新页面');
+      location.reload();
+      
+      setTimeout(() => {
+        console.log('第二次刷新页面');
+        location.reload();
+      }, 1000);
+    }, 1000);
+  } else {
+    // 用户未登录，只是关闭了登录窗口，不显示同步窗口
+    console.log('用户关闭了登录窗口，未登录');
+  }
 }
 
 // ====================== 登录状态管理 ======================
@@ -959,6 +1022,9 @@ function performLogout(localVersion) {
   localStorage.removeItem('bendibanben');
   localStorage.removeItem('bediyunbanben');
   
+  // 通知同步iframe登录状态变化
+  notifySyncIframe();
+  
   // 隐藏同步窗口
   document.getElementById('syncIframeContainer').style.display = 'none';
   
@@ -1107,12 +1173,20 @@ document.addEventListener('click', function(e) {
   }
 });
 
-// 接收登录成功的通知
-window.addEventListener('message', function(e) {
-  if (e.data === 'loginSuccess') {
-    hideLoginIframe();
+
+
+// 通知同步iframe登录状态变化
+function notifySyncIframe() {
+  try {
+    const syncIframe = document.getElementById('syncIframe');
+    if (syncIframe && syncIframe.contentWindow) {
+      syncIframe.contentWindow.postMessage('loginStatusChanged', '*');
+      console.log('已通知同步iframe登录状态变化');
+    }
+  } catch (e) {
+    console.error('通知同步iframe失败:', e);
   }
-});
+}
 
 // ====================== 原有后台拖动 ======================
 let isDragging = false;
@@ -1156,9 +1230,6 @@ function openPasswordModal(){
 function checkAdminPassword(){
   const passwordInput = document.getElementById("adminPassword");
   const pwd = passwordInput.value.trim();
-  
-  // 立即清空密码输入框，防止密码残留
-  passwordInput.value = "";
   
   if(pwd==="666666"){
     hideAllModals();
@@ -1280,13 +1351,20 @@ function savePeopleAndLeader(){
   setPeopleText(document.getElementById("peopleText").value);
   setLeaderText(document.getElementById("leaderText").value);
   closePeopleModal();
+  // 重新加载人员列表和负责人选择器
+  renderPeople();
+  loadLeaderSelect();
   partialRefreshRecords(); // 局部刷新
+  alert("保存成功");
 }
 
 function saveStatus(){
   setStatusText(document.getElementById("statusText").value);
   closeStatusModal();
+  // 重新加载状态树
+  loadLv1();
   partialRefreshRecords(); // 局部刷新
+  alert("保存成功");
 }
 
 function loadLv1(){
