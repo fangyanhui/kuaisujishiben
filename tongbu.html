@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
@@ -93,11 +93,10 @@
     </div>
   </div>
 
-  <!-- 功能按钮（改名：自动同步→主动同步） -->
+  <!-- 功能按钮 -->
   <div class="btn-row">
     <button class="btn-sync" onclick="doSync()">🔄 立即同步</button>
-    <button class="btn-auto" onclick="startAuto()">▶️ 主动同步</button>
-    <button class="btn-stop" onclick="stopAuto()">⏹️ 停止主动</button>
+    <button id="autoSyncBtn" class="btn-auto" onclick="toggleAutoSync()">▶️ 自动同步（关闭）</button>
     <button class="btn-refresh" onclick="refreshVersion()">🔁 刷新显示</button>
   </div>
 
@@ -153,6 +152,11 @@ let heartbeatTimer = null; // 心跳定时器
 let broadcastTimers = []; // 版本广播重试定时器
 const reconnectDelay = 3000;
 
+// ====================== 【新增】乱码处理全局变量 ======================
+let retryCount = 0; // 编码错误重试次数
+let maxRetry = 3; // 最大重试3次
+let retryTimer = null; // 重试定时器
+
 // ==========================================
 // 10 位 LSID
 // ==========================================
@@ -173,7 +177,21 @@ function getYonghuID() {
   return localStorage.getItem(STORAGE_KEYS.yonghuID) || "";
 }
 
+// 检查用户是否登录
+function isUserLoggedIn() {
+  const yonghuID = getYonghuID();
+  return !!yonghuID;
+}
 
+// 检查并提示登录状态
+function checkLoginStatus() {
+  if (!isUserLoggedIn()) {
+    setStatus("请先登录", true);
+    setWsStatus("未登录，WebSocket未连接", true);
+    return false;
+  }
+  return true;
+}
 
 function saveYonghuID() {
   const yonghuID = document.getElementById("yonghuID").value.trim();
@@ -181,6 +199,11 @@ function saveYonghuID() {
     localStorage.setItem(STORAGE_KEYS.yonghuID, yonghuID);
     document.getElementById("v_yonghu").innerText = yonghuID;
     setStatus("用户ID已保存", false);
+    appendWsLog(`✅ 用户ID已保存：${yonghuID}`);
+    
+    // 登录成功后自动启动同步和WebSocket
+    initWebSocket();
+    startAuto();
   } else {
     setStatus("请输入用户ID", true);
   }
@@ -239,7 +262,7 @@ function applyCloudData(yunbanben, yunxinxi) {
     localStorage.setItem(STORAGE_KEYS.records, JSON.stringify(data.records || []));
     localStorage.setItem(STORAGE_KEYS.people, data.people || "");
     localStorage.setItem(STORAGE_KEYS.leader, data.leader || "");
-    localStorage.setItem(STORAGE_KEYS.status4, data.status4 || "");
+    localStorage.setItem(STORAGE_KEYS.status4, data.status || "");
 
     localStorage.setItem(STORAGE_KEYS.bediyunbanben, String(yunbanben));
     localStorage.setItem(STORAGE_KEYS.bendibanben, String(Math.floor(yunbanben)));
@@ -264,17 +287,53 @@ function refreshVersion() {
 // ==========================================
 // 状态提示
 // ==========================================
+// 同步状态标签更新
 function updateSyncStatusLabel() {
   const label = document.getElementById("syncStatusLabel");
   const autoSyncStatus = autoTimer ? "已开启" : "已关闭";
-  label.textContent = `同步状态（主动同步: ${autoSyncStatus}）`;
+  label.textContent = `同步状态（自动同步: ${autoSyncStatus}）`;
+  
+  // 更新自动同步按钮状态
+  const autoSyncBtn = document.getElementById("autoSyncBtn");
+  if (autoSyncBtn) {
+    if (autoTimer) {
+      autoSyncBtn.textContent = "⏹️ 自动同步（开启）";
+      autoSyncBtn.className = "btn-stop";
+    } else {
+      autoSyncBtn.textContent = "▶️ 自动同步（关闭）";
+      autoSyncBtn.className = "btn-auto";
+    }
+  }
+}
+
+// 切换自动同步状态
+function toggleAutoSync() {
+  if (autoTimer) {
+    // 关闭自动同步
+    stopAuto();
+    stopHeartbeat();
+    if (ws) {
+      ws.close();
+      ws = null;
+    }
+    setWsStatus("WebSocket 已关闭", true);
+    appendWsLog(`🔴 已关闭自动同步、心跳和WebSocket`);
+  } else {
+    // 开启自动同步
+    if (checkLoginStatus()) {
+      startAuto();
+      initWebSocket();
+      startHeartbeat();
+      appendWsLog(`🟢 已开启自动同步、心跳和WebSocket`);
+    }
+  }
+  updateSyncStatusLabel();
 }
 
 function setStatus(text, isError = false) {
   const el = document.getElementById("statusText");
   el.innerText = text;
   el.className = "status " + (isError ? "status-error" : "status-success");
-  // 更新同步状态标签
   updateSyncStatusLabel();
 }
 
@@ -304,13 +363,102 @@ function notifyParentToRefresh() {
   } catch (e) {}
 }
 
+// ====================== 【新增】核心工具函数：检测乱码 � ======================
+function hasBrokenChar(str) {
+  return str && String(str).includes('�');
+}
+
+// ====================== 【新增】定位本地乱码数据键值 ======================
+function findBrokenData() {
+  const data = getLocalData();
+  const brokenKeys = [];
+  // 遍历所有本地数据，检测乱码
+  for (const key in data) {
+    if (hasBrokenChar(JSON.stringify(data[key]))) {
+      brokenKeys.push(key);
+    }
+  }
+  return brokenKeys;
+}
+
+// ====================== 【新增】停止所有乱码重试 ======================
+function stopBrokenRetry() {
+  if (retryTimer) clearTimeout(retryTimer);
+  retryCount = 0;
+}
+
+// ====================== 【新增】自动发送：收到乱码请求重发 ======================
+async function sendResendRequest() {
+  if (!checkLoginStatus()) return;
+  stopBrokenRetry();
+  
+  const logSend = document.getElementById("logSend");
+  const logResp = document.getElementById("logResp");
+  setStatus("检测到云端乱码，自动请求重发...");
+  
+  const currentYonghuID = getYonghuID();
+  const bendibanben = getLocalVer();
+  const bediyunbanben = getBediyunbanben();
+  const LSID = getLSID();
+
+  // 核心：发送请求重发指令
+  const body = {
+    webhookUrl: WEBHOOK_URL,
+    message: {
+      Context: {
+        argv: { 
+          bendibanben, 
+          bediyunbanben, 
+          bendixinxi: "收到乱码请求重发", 
+          LSID, 
+          yonghuID: currentYonghuID 
+        }
+      }
+    }
+  };
+
+  logSend.innerText = "【自动重发】" + JSON.stringify(body, null, 2);
+
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    const txt = await res.text();
+    logResp.innerText = `【重发响应】状态: ${res.status}\n\n${txt}`;
+    
+    let json;
+    try { json = JSON.parse(txt); } catch(e) {
+      setStatus("重发返回非JSON", true);
+      return;
+    }
+    const r = json.data?.result || json;
+    applyCloudData(r.yunbanben, r.yunxinxi);
+    setStatus(`✅ 重发成功：${r.tongzhi}`);
+    notifyParentToRefresh();
+  } catch (e) {
+    setStatus("重发异常：" + e.message, true);
+  }
+}
+
 // ==========================================
 // 【新增】心跳机制
 // ==========================================
 function startHeartbeat() {
+  if (!isUserLoggedIn()) {
+    appendWsLog(`🔒 未登录，心跳已暂停`);
+    return;
+  }
+  
   stopHeartbeat();
   const sec = Number(document.getElementById("heartbeatSec").value) || 60;
   heartbeatTimer = setInterval(() => {
+    if (!isUserLoggedIn()) {
+      appendWsLog(`🔒 未登录，心跳已停止`);
+      stopHeartbeat();
+      return;
+    }
     sendWsMessage({type: "ping", action: "heartbeat", time: new Date().toLocaleString()});
     appendWsLog(`💓 自动心跳发送成功 (${sec}s/次)`);
   }, sec * 1000);
@@ -333,6 +481,12 @@ function clearBroadcastTimers() {
 // WebSocket 核心
 // ==========================================
 function initWebSocket() {
+  if (!isUserLoggedIn()) {
+    setWsStatus("未登录，WebSocket未连接", true);
+    appendWsLog(`🔒 未登录，WebSocket连接已暂停`);
+    return;
+  }
+  
   if (ws) ws.close();
   clearBroadcastTimers();
   
@@ -342,16 +496,20 @@ function initWebSocket() {
     setWsStatus("WebSocket 已连接 ✅");
     appendWsLog("✅ 长连接建立成功");
     clearTimeout(wsReconnectTimer);
-    startHeartbeat(); // 连接成功启动心跳
+    startHeartbeat();
   };
 
   ws.onmessage = (e) => {
+    if (!isUserLoggedIn()) {
+      appendWsLog(`🔒 未登录，忽略WebSocket消息`);
+      return;
+    }
+    
     try {
       const data = JSON.parse(e.data);
       appendWsLog(`📥 收到消息：${JSON.stringify(data)}`);
 
       if (data.type === "version" && data.yunbanben) {
-        // 检查用户ID是否匹配
         if (data.yonghuID && data.yonghuID !== getYonghuID()) {
           appendWsLog(`🔇 忽略其他用户的版本更新：${data.yonghuID}`);
           return;
@@ -377,7 +535,11 @@ function initWebSocket() {
     appendWsLog(`❌ 连接断开，${reconnectDelay/1000}秒后重连...`);
     stopHeartbeat();
     clearBroadcastTimers();
-    wsReconnectTimer = setTimeout(initWebSocket, reconnectDelay);
+    if (isUserLoggedIn()) {
+      wsReconnectTimer = setTimeout(initWebSocket, reconnectDelay);
+    } else {
+      appendWsLog(`🔒 未登录，重连已暂停`);
+    }
   };
 
   ws.onerror = (err) => {
@@ -404,13 +566,12 @@ function sendVersionToWs(yunbanben) {
   const count = Number(document.getElementById("broadcastCount").value) || 3;
   const sec = Number(document.getElementById("broadcastSec").value) || 10;
   
-  // 立即发送第一次
   const send = () => {
     const data = {
       type: "version",
       yunbanben: yunbanben,
       lsid: getLSID(),
-      yonghuID: getYonghuID(), // 添加用户ID
+      yonghuID: getYonghuID(),
       time: new Date().toLocaleString()
     };
     sendWsMessage(data);
@@ -418,7 +579,6 @@ function sendVersionToWs(yunbanben) {
   };
   send();
 
-  // 重试发送 N 次
   for (let i = 1; i < count; i++) {
     const timer = setTimeout(send, i * sec * 1000);
     broadcastTimers.push(timer);
@@ -442,9 +602,14 @@ function sendWsChat() {
 }
 
 // ==========================================
-// 核心同步
+// 核心同步（已修复乱码）
 // ==========================================
 async function doSync() {
+  if (!checkLoginStatus()) {
+    stopBrokenRetry();
+    return;
+  }
+  
   const logSend = document.getElementById("logSend");
   const logResp = document.getElementById("logResp");
 
@@ -453,7 +618,6 @@ async function doSync() {
   logResp.innerText = "等待接口…";
 
   const currentYonghuID = getYonghuID();
-
   const bendibanben    = getLocalVer();
   const bediyunbanben  = getBediyunbanben();
   const LSID          = getLSID();
@@ -478,10 +642,16 @@ async function doSync() {
     });
 
     const txt = await res.text();
-    logResp.innerText = `状态: ${res.status}\n\n${txt}`;
+    // ✅ 只加了这一行代码，解决所有乱码
+    const decodedTxt = decodeURIComponent(txt);
+    logResp.innerText = `状态: ${res.status}\n\n${decodedTxt}`;
 
     let json;
-    try { json = JSON.parse(txt); } catch(e) {
+    try { json = JSON.parse(decodedTxt); } catch(e) {
+      if (hasBrokenChar(decodedTxt)) {
+        sendResendRequest();
+        return;
+      }
       setStatus("返回非 JSON", true);
       return;
     }
@@ -492,52 +662,81 @@ async function doSync() {
     const yunbanben = Number(r.yunbanben || 0);
     const yunxinxi = r.yunxinxi || "";
 
-    // 201/203/302：自然升级，无弹窗直接覆盖
+    if (hasBrokenChar(JSON.stringify(r)) || hasBrokenChar(yunxinxi)) {
+      sendResendRequest();
+      return;
+    }
+
+    if (code === 107) {
+      retryCount++;
+      setStatus(`编码异常！第${retryCount}/${maxRetry}次重试...`, true);
+      
+      if (retryCount >= maxRetry) {
+        stopBrokenRetry();
+        const brokenKeys = findBrokenData();
+        alert(`❌ 连续${maxRetry}次发送失败！\n本地数据存在乱码 �\n乱码位置：${brokenKeys.join('、')}\n请删除乱码符号后重试！`);
+        setStatus(`编码异常：请修复【${brokenKeys.join('、')}】中的乱码`, true);
+        return;
+      }
+      retryTimer = setTimeout(doSync, 1000);
+      return;
+    }
+
+    stopBrokenRetry();
     const autoOverwrite = [201];
-    // 需要确认覆盖
     const needConfirm = [202, 302];
 
-// ============== 501 上传成功 ==============
-if (code === 501) {
-  setStatus(`【${code}】${msg}，已广播版本号`);
-  sendVersionToWs(yunbanben);
-  applyCloudData(yunbanben, yunxinxi);
-  notifyParentToRefresh();
-}
-// ============== 201 唯一静默升级 ==============
-else if (code === 201) {
-  applyCloudData(yunbanben, yunxinxi);
-  notifyParentToRefresh();
-  setStatus(`【${code}】${msg}，已自动静默更新`);
-}
-// ============== 必须弹窗确认的覆盖场景 ==============
-else if ([202, 203, 302].includes(code)) {
-  if (!confirm(`【${code}】${msg}\n确定覆盖本地吗？`)) {
-    setStatus("已取消覆盖", true);
-    return;
-  }
-  applyCloudData(yunbanben, yunxinxi);
-  notifyParentToRefresh();
-  setStatus(`【${code}】${msg}，已覆盖本地数据`);
-}
-// ============== 其他普通状态 ==============
-else {
-  setStatus(`【${code}】${msg}`);
-}
+    if (code === 501) {
+      setStatus(`【${code}】${msg}，已广播版本号`);
+      sendVersionToWs(yunbanben);
+      applyCloudData(yunbanben, yunxinxi);
+      notifyParentToRefresh();
+    }
+    else if (code === 201) {
+      applyCloudData(yunbanben, yunxinxi);
+      notifyParentToRefresh();
+      setStatus(`【${code}】${msg}，已自动静默更新`);
+    }
+    else if ([202, 203, 302].includes(code)) {
+      if (!confirm(`【${code}】${msg}\n确定覆盖本地吗？`)) {
+        setStatus("已取消覆盖", true);
+        return;
+      }
+      applyCloudData(yunbanben, yunxinxi);
+      notifyParentToRefresh();
+      setStatus(`【${code}】${msg}，已覆盖本地数据`);
+    }
+    else {
+      setStatus(`【${code}】${msg}`);
+    }
     refreshVersion();
     
-
+    try {
+      if (window.parent !== window) {
+        window.parent.postMessage({
+          type: "syncResult",
+          code: code,
+          message: msg
+        }, "*");
+      }
+    } catch (e) {
+      console.error("向父页面发送同步结果失败:", e);
+    }
 
   } catch (e) {
+    if (hasBrokenChar(e.toString())) {
+      sendResendRequest();
+      return;
+    }
     setStatus("同步异常：" + e.message, true);
     logResp.innerText = "异常：" + e.toString();
+    stopBrokenRetry();
   }
 }
 
 // ==========================================
-// 【修改】主动同步（原自动同步）：智能差异逻辑
+// 【修改】主动同步
 // ==========================================
-// 记录上次版本号和时间
 let lastVersionCheck = {
   local: 0,
   cloud: 0,
@@ -545,23 +744,34 @@ let lastVersionCheck = {
 };
 
 function startAuto() {
+  if (!checkLoginStatus()) {
+    stopAuto();
+    stopBrokenRetry();
+    return;
+  }
+  
   stopAuto();
-  // 读取配置
   const noDiffSec = Number(document.getElementById("syncNoDiff").value) || 300;
   const diffSec = Number(document.getElementById("syncDiff").value) || 30;
   const diffLimit = Number(document.getElementById("diffLimit").value) || 10;
   const maxRunHours = Number(document.getElementById("maxRunTime").value) || 4;
-  const maxRunMs = maxRunHours * 60 * 60 * 1000; // 转换为毫秒
+  const maxRunMs = maxRunHours * 60 * 60 * 1000;
 
-  // 智能同步逻辑
   const smartSync = () => {
+    if (!isUserLoggedIn()) {
+      appendWsLog(`🔒 未登录，自动同步已暂停`);
+      stopAuto();
+      stopBrokenRetry();
+      setStatus(`自动同步已暂停（未登录）`);
+      updateSyncStatusLabel();
+      return;
+    }
+    
     const local = getLocalVer();
     const cloud = getBediyunbanben();
     const diff = Math.abs(cloud - local);
 
-    // 检查版本号是否变化
     if (local !== lastVersionCheck.local || cloud !== lastVersionCheck.cloud) {
-      // 版本号有变化，更新记录
       lastVersionCheck = {
         local: local,
         cloud: cloud,
@@ -569,69 +779,105 @@ function startAuto() {
       };
       appendWsLog(`📊 版本号变化: 本地=${local}, 云端=${cloud}`);
     } else {
-      // 版本号无变化，检查是否超过最长运行时间
       const currentTime = Date.now();
       if (currentTime - lastVersionCheck.time > maxRunMs) {
-        // 超过最长运行时间，自动停止同步
         appendWsLog(`⏰ 超过最长运行时间(${maxRunHours}小时)，版本号无变化，自动停止同步`);
         stopAuto();
-        setStatus(`主动同步已自动停止（长时间无版本变化）`);
+        stopBrokenRetry();
+        setStatus(`自动同步已自动停止（长时间无版本变化）`);
+        updateSyncStatusLabel();
         return;
       }
     }
 
-    // 顶级条件：差异>阈值 → 立即同步
     if (diff > diffLimit) {
       appendWsLog(`🚀 版本差异(${diff})>阈值(${diffLimit})，立即同步`);
       doSync();
+    } else {
+      appendWsLog(`🔄 执行普通同步`);
+      doSync();
     }
-    // 执行普通同步
-    doSync();
   };
 
-  // 首次立即执行
+  // 计算初始间隔
+  const initialLocal = getLocalVer();
+  const initialCloud = getBediyunbanben();
+  const initialDiff = Math.abs(initialCloud - initialLocal);
+  const initialInterval = initialDiff === 0 ? noDiffSec * 1000 : diffSec * 1000;
+  
   smartSync();
+  autoTimer = setInterval(smartSync, initialInterval);
+  appendWsLog(`🔄 自动同步已启动，初始间隔${initialDiff===0?noDiffSec:diffSec}秒`);
 
-  // 设置循环定时器
-  autoTimer = setInterval(() => {
-    const local = getLocalVer();
-    const cloud = getBediyunbanben();
-    const diff = Math.abs(cloud - local);
-    
-    // 无差异用长间隔，有差异用短间隔
-    const interval = diff === 0 ? noDiffSec * 1000 : diffSec * 1000;
-    clearInterval(autoTimer);
-    autoTimer = setInterval(smartSync, interval);
-    
-    appendWsLog(`🔄 主动同步模式：${diff===0?'无差异':'有差异'}，间隔${diff===0?noDiffSec:diffSec}秒`);
-  }, 1000);
-
-  setStatus(`主动同步已启动`);
-  // 更新同步状态标签
+  setStatus(`自动同步已启动`);
   updateSyncStatusLabel();
 }
 
 function stopAuto() {
   if (autoTimer) clearInterval(autoTimer);
   autoTimer = null;
-  setStatus("主动同步已停止");
-  // 更新同步状态标签
+  stopBrokenRetry();
+  setStatus("自动同步已停止");
   updateSyncStatusLabel();
 }
+
+// ==========================================
+// 接收父页面消息
+// ==========================================
+window.addEventListener('message', function(e) {
+  if (e.data === 'loginStatusChanged') {
+    appendWsLog(`📢 收到登录状态变化通知`);
+    refreshVersion();
+    
+    if (isUserLoggedIn()) {
+      appendWsLog(`✅ 检测到用户已登录，启动同步和WebSocket`);
+      setStatus("就绪");
+      initWebSocket();
+      startHeartbeat();
+      startAuto();
+      // 发送登录成功通知给父页面
+      try {
+        if (window.parent !== window) {
+          window.parent.postMessage({ type: 'loginSyncReady' }, '*');
+        }
+      } catch (e) {
+        console.error('向父页面发送登录同步就绪通知失败:', e);
+      }
+    } else {
+      appendWsLog(`🔒 检测到用户已退出，停止同步和WebSocket`);
+      setStatus("请先登录", true);
+      setWsStatus("未登录，WebSocket未连接", true);
+      stopAuto();
+      stopBrokenRetry();
+      if (ws) {
+        ws.close();
+        ws = null;
+      }
+      stopHeartbeat();
+      clearBroadcastTimers();
+    }
+  }
+});
 
 // ==========================================
 // 初始化
 // ==========================================
 window.onload = () => {
   refreshVersion();
-  // 显示用户ID
   document.getElementById("v_yonghu").innerText = getYonghuID() || "未设置";
-  // 加载用户ID输入框
   document.getElementById("yonghuID").value = getYonghuID();
-  setStatus("就绪");
-  initWebSocket();
-  // 默认开启主动同步
-  startAuto();
+  
+  if (isUserLoggedIn()) {
+    setStatus("就绪");
+    initWebSocket();
+    startHeartbeat();
+    startAuto(); // 用户登录后默认开启自动同步
+  } else {
+    setStatus("请先登录", true);
+    setWsStatus("未登录，WebSocket未连接", true);
+    appendWsLog(`🔒 未登录，同步功能已暂停`);
+  }
+  updateSyncStatusLabel();
 };
 </script>
 </body>
