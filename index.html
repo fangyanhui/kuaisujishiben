@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <meta charset="utf-8" name="viewport" content="width=device-width, initial-scale=1.0">
 <title>快速记事</title>
@@ -68,11 +68,8 @@ button.star{background:#FFB800;color:#222;font-weight:bold}
   border-radius:6px;
   padding:3px;
   margin-bottom:1px;
-  /* ========== 关键修改 ========== */
-  /* 固定高度改为最大高度，自动高度适配内容 */
   max-height:150px;
   height:auto;
-  /* ============================= */
   display:flex;
   flex-direction:column;
   overflow:hidden;
@@ -106,6 +103,7 @@ button.star{background:#FFB800;color:#222;font-weight:bold}
   white-space:normal;
   display:-webkit-box;
   -webkit-line-clamp:2;
+  -webkit-line-clamp:2;
   -webkit-box-orient:vertical;
   overflow:hidden;
   padding-right:3px;
@@ -116,12 +114,10 @@ button.star{background:#FFB800;color:#222;font-weight:bold}
   position:absolute;
   right:0;
   bottom:0;
-  /* 1. 字体改更小：从 12px → 10px */
   font-size:10px;
   color:#333;
-  /* 2. 背景改成半透明：rgba(238,238,238, 0.1) 表示浅灰色 + 70% 不透明度 */
-  background:rgba(238,238,238, 0.5);
-  padding:1px 1px;
+  background:rgba(238,238,238, 0.7);
+  padding:2px 6px;
   border-radius:6px;
   line-height:1.3;
   z-index:10;
@@ -160,7 +156,6 @@ button.star{background:#FFB800;color:#222;font-weight:bold}
 .star-page{display:none}
 .trash-page{display:none}
 
-/* ===== 修复后的弹窗样式 ===== */
 .modal{
   position:fixed;
   top:0;
@@ -196,7 +191,6 @@ button.star{background:#FFB800;color:#222;font-weight:bold}
   margin-bottom:8px;
 }
 
-/* 复制预览弹窗 */
 #previewModal {
   background:rgba(0,0,0,0.6);
   z-index:9999;
@@ -217,7 +211,6 @@ button.star{background:#FFB800;color:#222;font-weight:bold}
   font-size:14px;
 }
 
-/* 编辑人员弹窗 */
 #editPeopleModal {
   z-index:9998;
 }
@@ -237,76 +230,193 @@ button.star{background:#FFB800;color:#222;font-weight:bold}
   padding:10px 4px;
 }
 
-/* 备注弹窗 */
 #noteModal {
   z-index:9997;
 }
 
-/* 密码弹窗样式 */
 #passwordModal {
   background: rgba(0,0,0,0.6);
   z-index: 10000;
 }
 .password-box {
   background: #fff;
-  padding: 20px;
-  border-radius: 12px;
-  width: 280px;
-  text-align: center;
+  padding:20px;
+  border-radius:12px;
+  width:280px;
+  text-align:center;
 }
 .password-box input {
-  margin: 10px 0;
-  text-align: center;
-  font-size: 16px;
-  letter-spacing: 4px;
+  margin:10px 0;
+  text-align:center;
+  font-size:16px;
+  letter-spacing:4px;
 }
 
-/* 可拖动iframe样式 */
+/* ========== 同步窗口 ========== */
+#syncIframeContainer {
+  position:fixed;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  width:400px;
+  height:400px;
+  background:#fff;
+  border-radius:12px;
+  box-shadow:0 0 20px rgba(0,0,0,0.2);
+  z-index:9999;
+  display:none; /* 默认隐藏 */
+}
+#syncHeader {
+  height:36px;
+  background:#2196F3;
+  color:#fff;
+  padding:8px 12px;
+  border-radius:12px 12px 0 0;
+  cursor:move;
+  font-weight:bold;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+#closeSyncBtn {
+  background:#fff;
+  color:#2196F3;
+  border:none;
+  border-radius:4px;
+  padding:2px 8px;
+  font-size:12px;
+  cursor:pointer;
+  width:auto;
+}
+#syncIframe {
+  width:100%;
+  height:calc(100% - 36px);
+  border:none;
+}
+
+/* 原有后台窗口 */
 #adminIframeContainer {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 400px;
-  height: 400px;
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 0 20px rgba(0,0,0,0.2);
-  z-index: 9999;
-  display: none;
+  position:fixed;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  width:400px;
+  height:400px;
+  background:#fff;
+  border-radius:12px;
+  box-shadow:0 0 20px rgba(0,0,0,0.2);
+  z-index:9999;
+  display:none;
 }
 #iframeHeader {
-  height: 36px;
-  background: #9C27B0;
-  color: #fff;
-  padding: 8px 12px;
-  border-radius: 12px 12px 0 0;
-  cursor: move;
-  font-weight: bold;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  height:36px;
+  background:#9C27B0;
+  color:#fff;
+  padding:8px 12px;
+  border-radius:12px 12px 0 0;
+  cursor:move;
+  font-weight:bold;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
 }
 #closeIframeBtn {
-  background: #fff;
-  color: #9C27B0;
-  border: none;
-  border-radius: 4px;
-  padding: 2px 8px;
-  font-size: 12px;
-  cursor: pointer;
-  width: auto;
+  background:#fff;
+  color:#9C27B0;
+  border:none;
+  border-radius:4px;
+  padding:2px 8px;
+  font-size:12px;
+  cursor:pointer;
+  width:auto;
 }
 #adminIframe {
-  width: 100%;
-  height: calc(100% - 36px);
-  border: none;
+  width:100%;
+  height:calc(100% - 36px);
+  border:none;
 }
+
+/* 登录窗口 */
+#loginIframeContainer {
+  position:fixed;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  width:400px;
+  height:400px;
+  background:#fff;
+  border-radius:12px;
+  box-shadow:0 0 20px rgba(0,0,0,0.2);
+  z-index:9999;
+  display:none;
+}
+#loginHeader {
+  height:36px;
+  background:#2196F3;
+  color:#fff;
+  padding:8px 12px;
+  border-radius:12px 12px 0 0;
+  cursor:move;
+  font-weight:bold;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+#closeLoginBtn {
+  background:#fff;
+  color:#2196F3;
+  border:none;
+  border-radius:4px;
+  padding:2px 8px;
+  font-size:12px;
+  cursor:pointer;
+  width:auto;
+}
+#loginIframe {
+  width:100%;
+  height:calc(100% - 36px);
+  border:none;
+}
+
 </style>
 
 <body>
+
 <div class="main-page">
-  <div class="page-title">快速记事</div>
+  <!-- 登录状态显示 -->
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+    <div class="page-title">快速记事</div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <!-- 立即同步按钮 -->
+      <button id="syncBtn" style="padding:4px 8px;background:#1890ff;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;" onclick="doQuickSync()">立即同步</button>
+      <div id="loginStatus" style="position:relative;">
+        <span id="loginText" style="font-size:13px;cursor:pointer;">登录</span>
+        <!-- 同步状态显示 -->
+        <div id="syncStatus" style="position:absolute;right:0;top:100%;margin-top:4px;background:#f5f5f5;border:1px solid #ddd;border-radius:4px;padding:4px 8px;font-size:11px;color:#666;display:none;z-index:1000;"></div>
+        <!-- 登录菜单 -->
+        <div id="loginMenu" style="position:absolute;right:0;top:100%;margin-top:4px;background:#fff;border:1px solid #ddd;border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,0.1);padding:4px;display:none;z-index:1000;">
+          <div style="padding:6px 12px;cursor:pointer;font-size:13px;" onclick="openChangePassword()">修改密码</div>
+          <div style="padding:6px 12px;cursor:pointer;font-size:13px;" onclick="logout()">退出登录</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 退出登录弹窗 -->
+  <div id="logoutModal" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:none;justify-content:center;align-items:center;z-index:10000;">
+    <div style="background:#fff;padding:24px;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);width:300px;text-align:center;">
+      <h3 style="margin-top:0;margin-bottom:16px;color:#333;">退出登录</h3>
+      <p id="logoutMessage" style="margin-bottom:20px;color:#666;">正在同步数据，请稍等...</p>
+      <div id="logoutLoading" style="margin-bottom:20px;">同步中</div>
+      <div style="display:flex;justify-content:center;gap:8px;">
+        <button id="logoutCancelBtn" style="padding:8px 16px;background:#f5f5f5;border:1px solid #ddd;border-radius:4px;cursor:pointer;" onclick="cancelLogout()">取消</button>
+        <button id="logoutRetryBtn" style="padding:8px 16px;background:#1890ff;color:#fff;border:none;border-radius:4px;cursor:pointer;display:none;" onclick="retrySync()">再次同步</button>
+        <button id="logoutForceBtn" style="padding:8px 16px;background:#ff4d4f;color:#fff;border:none;border-radius:4px;cursor:pointer;display:none;" onclick="forceLogout()">强制退出</button>
+        <button id="logoutConfirmBtn" style="padding:8px 16px;background:#1890ff;color:#fff;border:none;border-radius:4px;cursor:pointer;display:none;" onclick="confirmLogout()">确定</button>
+      </div>
+    </div>
+  </div>
+  
   <div class="top-btn-bar">
     <button onclick="openPeopleEdit()">自定名单</button>
     <button onclick="openStatusEdit()">自定选项</button>
@@ -336,22 +446,18 @@ button.star{background:#FFB800;color:#222;font-weight:bold}
 
   <div id="recentRecords"></div>
 
-  <!-- ========== 关键修改：底部按钮布局 ========== -->
-  <!-- 第一行：显示更多 + 打开后台 并列 -->
   <div style="display:flex;gap:4px;margin-top:8px;">
     <button class="gray" style="flex:1;" onclick="showMore()">显示更多</button>
     <button class="gray" style="flex:1;" onclick="openPasswordModal()">打开后台</button>
   </div>
-  <!-- 第二行：新增两个超链接按钮 -->
   <div style="display:flex;gap:4px;margin-top:6px;">
-    <a href="hengban.html" target="_blank" style="flex:1;text-decoration:none;">
+    <a href="hengban.html" target="_self" style="flex:1;text-decoration:none;">
       <button class="gray" style="width:100%;">横版页面</button>
     </a>
-    <a href="#" target="_blank" style="flex:1;text-decoration:none;">
+    <a href="#" target="_self" style="flex:1;text-decoration:none;">
       <button class="gray" style="width:100%;">自定义链接</button>
     </a>
   </div>
-  <!-- =========================================== -->
 </div>
 
 <div class="all-page">
@@ -379,7 +485,6 @@ button.star{background:#FFB800;color:#222;font-weight:bold}
   <div id="trashRecords"></div>
 </div>
 
-<!-- 复制预览弹窗 -->
 <div id="previewModal" class="modal">
   <div id="previewCard">
     <div style="font-weight:bold;font-size:16px;margin-bottom:8px">复制成功</div>
@@ -388,7 +493,6 @@ button.star{background:#FFB800;color:#222;font-weight:bold}
   </div>
 </div>
 
-<!-- 编辑人员弹窗 -->
 <div id="editPeopleModal" class="modal">
   <div class="modal-content">
     <div class="modal-title">编辑记录</div>
@@ -402,7 +506,6 @@ button.star{background:#FFB800;color:#222;font-weight:bold}
   </div>
 </div>
 
-<!-- 备注弹窗 -->
 <div id="noteModal" class="modal">
   <div class="modal-content">
     <div class="modal-title">编辑备注</div>
@@ -414,7 +517,6 @@ button.star{background:#FFB800;color:#222;font-weight:bold}
   </div>
 </div>
 
-<!-- 人员+负责人编辑弹窗 -->
 <div id="peopleModal" class="modal">
   <div class="modal-content">
     <div class="modal-title">编辑名单（一行一个）</div>
@@ -428,7 +530,6 @@ button.star{background:#FFB800;color:#222;font-weight:bold}
   </div>
 </div>
 
-<!-- 状态编辑弹窗 -->
 <div id="statusModal" class="modal">
   <div class="modal-content">
     <div class="modal-title">编辑4级选项（格式：1>2>3>4）</div>
@@ -440,11 +541,10 @@ button.star{background:#FFB800;color:#222;font-weight:bold}
   </div>
 </div>
 
-<!-- 密码弹窗 -->
 <div id="passwordModal" class="modal">
   <div class="password-box">
     <div style="font-weight:bold;margin-bottom:8px;">请输入后台密码</div>
-    <input type="password" id="adminPassword" placeholder="??????">
+    <input type="password" id="adminPassword" placeholder="??????" autocomplete="off" autocomplete="new-password">
     <div style="display:flex;gap:8px;">
       <button class="gray" style="flex:1;" onclick="closePasswordModal()">取消</button>
       <button style="flex:1;" onclick="checkAdminPassword()">确定</button>
@@ -452,7 +552,7 @@ button.star{background:#FFB800;color:#222;font-weight:bold}
   </div>
 </div>
 
-<!-- 后台iframe -->
+<!-- 原有后台 -->
 <div id="adminIframeContainer">
   <div id="iframeHeader">
     后台面板
@@ -461,28 +561,78 @@ button.star{background:#FFB800;color:#222;font-weight:bold}
   <iframe id="adminIframe" src="houtai.html"></iframe>
 </div>
 
-<script>
+<!-- 同步窗口：打开即加载 tongbu.html -->
+<div id="syncIframeContainer">
+  <div id="syncHeader">
+    同步服务
+    <button id="closeSyncBtn" onclick="hideSyncIframe()">关闭</button>
+  </div>
+  <iframe id="syncIframe" src="tongbu.html"></iframe>
+</div>
 
-// 监听iframe子页面发来的刷新指令
+<!-- 登录窗口 -->
+<div id="loginIframeContainer">
+  <div id="loginHeader">
+    登录系统
+    <button id="closeLoginBtn" onclick="hideLoginIframe()">关闭</button>
+  </div>
+  <iframe id="loginIframe" src="denglu.html"></iframe>
+</div>
+
+<script>
+// ====================== 局部刷新逻辑 ======================
+let isEditing = false;
+
+// 接收同步通知
 window.addEventListener('message', function(e) {
-  // 只响应指定的刷新消息，避免误触发
-  if (e.data?.type === 'REFRESH_PARENT') {
-    // 强制刷新主页（不走缓存）
-    window.location.reload(true);
+  if (e.data === 'refreshFromCloud') {
+    if (isEditing) {
+      console.log('编辑中，同步后局部刷新');
+      setTimeout(() => {
+        partialRefreshRecords();
+      }, 300);
+    } else {
+      partialRefreshRecords();
+    }
   }
 });
+
+// 只刷新记录列表，不整页刷新
+function partialRefreshRecords() {
+  console.log('执行局部刷新');
+  renderRecords();   // 只重绘列表
+  renderStarPage();  // 同步刷新收藏页
+  renderTrashPage(); // 同步刷新回收站
+}
+// ==========================================================
 
 const STORAGE_KEY = 'jichibang_records';
 const PEOPLE_KEY = 'cfg_people';
 const LEADER_KEY = 'cfg_leader';
 const STATUS_KEY = 'cfg_status4';
-const TRASH_KEY = 'jichibang_trash';
+const DEFAULT_TRASH_KEY = 'jichibang_trash';
+const BENDIBANBEN_KEY = 'bendibanben';
 const week = ["日","一","二","三","四","五","六"];
+
+// 获取当前用户的回收站键
+function getCurrentTrashKey() {
+  const yonghuID = localStorage.getItem('yonghuID');
+  if (yonghuID) {
+    return `${yonghuID}_${DEFAULT_TRASH_KEY}`;
+  }
+  return DEFAULT_TRASH_KEY;
+}
 
 let currentEditIndex = -1;
 let currentRecordPeopleMap = {};
 let currentNoteIndex = -1;
 let showLimit = 5;
+
+function incLocalVersion() {
+  let v = parseInt(localStorage.getItem(BENDIBANBEN_KEY) || 0);
+  v++;
+  localStorage.setItem(BENDIBANBEN_KEY, v);
+}
 
 function generateUniqueId(){
   const d = new Date();
@@ -498,26 +648,25 @@ function generateUniqueId(){
   return time14+r1+r2;
 }
 
-// ===== 修复后的弹窗核心逻辑 =====
 function showModal(id){
-  // 先隐藏所有弹窗，再显示目标弹窗
   hideAllModals();
   document.getElementById(id).style.display = "flex";
+  isEditing = true;
 }
 function hideAllModals(){
   document.querySelectorAll('.modal').forEach(m=>{
     m.style.display = "none";
   });
+  isEditing = false;
 }
 
-// 各弹窗关闭函数
 function closePreview(){ hideAllModals() }
-function closeEditPeopleModal(){ 
+function closeEditPeopleModal(){
   hideAllModals();
   currentEditIndex=-1;
   currentRecordPeopleMap = {};
 }
-function closeNoteModal(){ 
+function closeNoteModal(){
   hideAllModals();
   currentNoteIndex=-1;
 }
@@ -525,6 +674,438 @@ function closePeopleModal(){ hideAllModals() }
 function closeStatusModal(){ hideAllModals() }
 function closePasswordModal(){ hideAllModals() }
 
+// ====================== 同步窗口拖动 ======================
+let isSyncDragging = false;
+let syncStartX, syncStartY, syncX, syncY;
+document.getElementById('syncHeader').addEventListener('mousedown', startSyncDrag);
+document.addEventListener('mousemove', doSyncDrag);
+document.addEventListener('mouseup', stopSyncDrag);
+
+function startSyncDrag(e) {
+  isSyncDragging = true;
+  const c = document.getElementById('syncIframeContainer');
+  syncStartX = e.clientX;
+  syncStartY = e.clientY;
+  // 直接使用offsetLeft和offsetTop，避免style.left为NaN时的问题
+  syncX = c.offsetLeft;
+  syncY = c.offsetTop;
+  document.body.style.userSelect = 'none';
+}
+function doSyncDrag(e) {
+  if (!isSyncDragging) return;
+  const c = document.getElementById('syncIframeContainer');
+  const dx = e.clientX - syncStartX;
+  const dy = e.clientY - syncStartY;
+  c.style.left = syncX + dx + 'px';
+  c.style.top = syncY + dy + 'px';
+  // 移除transform设置，避免跳动
+}
+function stopSyncDrag() {
+  isSyncDragging = false;
+  document.body.style.userSelect = 'auto';
+}
+
+function hideSyncIframe() {
+  document.getElementById('syncIframeContainer').style.display = 'none';
+}
+
+// 快速同步函数
+function doQuickSync() {
+  // 检查用户是否登录
+  const yonghuID = localStorage.getItem('yonghuID');
+  if (!yonghuID) {
+    // 未登录，显示登录页面
+    showLoginIframe();
+    return;
+  }
+  
+  // 显示同步状态
+  const syncStatus = document.getElementById('syncStatus');
+  syncStatus.textContent = '正在同步...';
+  syncStatus.style.display = 'block';
+  
+  // 从tongbu.html iframe调用同步
+  const syncIframe = document.getElementById('syncIframe');
+  try {
+    // 尝试调用tongbu.html中的doSync方法
+    syncIframe.contentWindow.doSync();
+    console.log('已调用tongbu.html的doSync方法');
+    
+    // 3秒后隐藏同步状态
+    setTimeout(() => {
+      syncStatus.textContent = '同步完成';
+      setTimeout(() => {
+        syncStatus.style.display = 'none';
+      }, 1000);
+    }, 3000);
+  } catch (e) {
+    console.error('调用tongbu.html的doSync失败:', e);
+    syncStatus.textContent = '同步失败';
+    setTimeout(() => {
+      syncStatus.style.display = 'none';
+    }, 3000);
+  }
+}
+
+// ====================== 登录窗口 ======================
+let isLoginDragging = false;
+let loginStartX, loginStartY, loginX, loginY;
+document.getElementById('loginHeader').addEventListener('mousedown', startLoginDrag);
+document.addEventListener('mousemove', doLoginDrag);
+document.addEventListener('mouseup', stopLoginDrag);
+
+function startLoginDrag(e) {
+  isLoginDragging = true;
+  const c = document.getElementById('loginIframeContainer');
+  loginStartX = e.clientX;
+  loginStartY = e.clientY;
+  // 直接使用offsetLeft和offsetTop，避免style.left为NaN时的问题
+  loginX = c.offsetLeft;
+  loginY = c.offsetTop;
+  document.body.style.userSelect = 'none';
+}
+function doLoginDrag(e) {
+  if (!isLoginDragging) return;
+  const c = document.getElementById('loginIframeContainer');
+  const dx = e.clientX - loginStartX;
+  const dy = e.clientY - loginStartY;
+  c.style.left = loginX + dx + 'px';
+  c.style.top = loginY + dy + 'px';
+  // 移除transform设置，避免跳动
+}
+function stopLoginDrag() {
+  isLoginDragging = false;
+  document.body.style.userSelect = 'auto';
+}
+
+function showLoginIframe() {
+  document.getElementById('loginIframeContainer').style.display = 'block';
+}
+function hideLoginIframe() {
+  document.getElementById('loginIframeContainer').style.display = 'none';
+  // 登录后刷新登录状态
+  updateLoginStatus();
+  // 登录成功后刷新页面
+  location.reload();
+}
+
+// ====================== 登录状态管理 ======================
+function updateLoginStatus() {
+  const yonghuID = localStorage.getItem('yonghuID');
+  const loginText = document.getElementById('loginText');
+  
+  if (yonghuID) {
+    loginText.textContent = `用户：${yonghuID}`;
+  } else {
+    loginText.textContent = '登录';
+  }
+}
+
+function toggleLoginMenu() {
+  const loginMenu = document.getElementById('loginMenu');
+  loginMenu.style.display = loginMenu.style.display === 'block' ? 'none' : 'block';
+}
+
+function openChangePassword() {
+  document.getElementById('loginMenu').style.display = 'none';
+  showLoginIframe();
+  // 可以在这里添加逻辑，让登录页面默认选中修改密码选项
+}
+
+let logoutInterval = null;
+let isLoggingOut = false;
+
+function logout() {
+  // 防止重复点击
+  if (isLoggingOut) return;
+  
+  // 检查本地版本和云端版本
+  const localVersion = parseInt(localStorage.getItem('bendibanben') || 0);
+  const cloudVersion = parseInt(localStorage.getItem('bediyunbanben') || 0);
+  
+  console.log(`退出登录检查: 本地版本=${localVersion}, 云端版本=${cloudVersion}`);
+  
+  // 如果bendibanben和bendiyunbanben都是0，直接退出，不删除本地痕迹
+  if (localVersion === 0 && cloudVersion === 0) {
+    console.log('bendibanben和bendiyunbanben都是0，直接退出，不删除本地痕迹');
+    // 只清理用户标识，不删除其他本地痕迹
+    localStorage.removeItem('yonghuID');
+    localStorage.removeItem('lastyonghuID');
+    // 关闭登录菜单
+    document.getElementById('loginMenu').style.display = 'none';
+    // 更新登录状态
+    updateLoginStatus();
+    // 刷新页面
+    location.reload();
+    return;
+  }
+  
+  // 如果版本已经一致，直接退出，不显示弹窗
+  if (localVersion === cloudVersion) {
+    console.log('版本已经一致，直接退出');
+    performLogout(localVersion);
+    return;
+  }
+  
+  isLoggingOut = true;
+  
+  // 冻结退出登录按钮
+  const logoutBtn = document.querySelector('#loginMenu div[onclick="logout()"]');
+  if (logoutBtn) {
+    logoutBtn.style.opacity = '0.5';
+    logoutBtn.style.cursor = 'not-allowed';
+    logoutBtn.onclick = null;
+  }
+  
+  // 显示退出登录弹窗
+  document.getElementById('logoutModal').style.display = 'flex';
+  
+  // 开始加载动画
+  let dotCount = 0;
+  const loadingElement = document.getElementById('logoutLoading');
+  
+  const loadingInterval = setInterval(() => {
+    dotCount = (dotCount + 1) % 4;
+    loadingElement.textContent = '同步中' + '.'.repeat(dotCount);
+  }, 500);
+  
+  // 显示同步窗口（包含tongbu.html）
+  document.getElementById('syncIframeContainer').style.display = 'block';
+  
+  // 从tongbu.html iframe调用同步
+  const syncIframe = document.getElementById('syncIframe');
+  try {
+    // 尝试调用tongbu.html中的doSync方法
+    syncIframe.contentWindow.doSync();
+    console.log('已调用tongbu.html的doSync方法');
+  } catch (e) {
+    console.error('调用tongbu.html的doSync失败:', e);
+    try {
+      // 尝试发送消息触发同步
+      syncIframe.contentWindow.postMessage('triggerSync', '*');
+      console.log('已向tongbu.html发送同步请求');
+    } catch (e2) {
+      console.error('向tongbu.html发送同步请求失败:', e2);
+    }
+  }
+  
+  // 开始检查同步状态
+  let checkCount = 0;
+  const maxChecks = 20; // 最多检查20次（10秒）
+  
+  let lastLocalVersion = localVersion;
+  let lastCloudVersion = cloudVersion;
+  
+  logoutInterval = setInterval(() => {
+    checkCount++;
+    
+    // 检查本地版本和云端版本
+    const updatedLocalVersion = parseInt(localStorage.getItem('bendibanben') || 0);
+    const updatedCloudVersion = parseInt(localStorage.getItem('bediyunbanben') || 0);
+    
+    console.log(`检查同步状态: 本地版本=${updatedLocalVersion}, 云端版本=${updatedCloudVersion}, 检查次数=${checkCount}`);
+    
+    if (updatedLocalVersion === updatedCloudVersion) {
+      // 版本一致，执行退出
+      clearInterval(logoutInterval);
+      clearInterval(loadingInterval);
+      document.getElementById('logoutMessage').textContent = '同步完成，准备退出...';
+      document.getElementById('logoutLoading').textContent = '同步成功';
+      document.getElementById('logoutCancelBtn').style.display = 'none';
+      document.getElementById('logoutConfirmBtn').style.display = 'inline-block';
+      console.log('版本一致，准备退出');
+    } else if (checkCount >= maxChecks) {
+      // 超过最大检查次数，显示重试和强制退出选项
+      clearInterval(logoutInterval);
+      clearInterval(loadingInterval);
+      document.getElementById('logoutMessage').textContent = '同步失败，是否再次同步或强制退出？';
+      document.getElementById('logoutLoading').textContent = '同步失败';
+      // 显示再次同步和强制退出按钮
+      document.getElementById('logoutCancelBtn').style.display = 'inline-block';
+      document.getElementById('logoutRetryBtn').style.display = 'inline-block';
+      document.getElementById('logoutForceBtn').style.display = 'inline-block';
+      document.getElementById('logoutConfirmBtn').style.display = 'none';
+      console.log('同步失败，超过最大尝试次数');
+    }
+  }, 500); // 每0.5秒检查一次
+}
+
+function performLogout(localVersion) {
+  console.log(`执行退出登录，本地版本=${localVersion}`);
+  
+  // 清理用户ID相关信息
+  localStorage.removeItem('yonghuID');
+  localStorage.removeItem('lastyonghuID');
+  
+  // 清空本地用户痕迹
+  console.log('清空本地用户痕迹');
+  // 清理记录数据
+  localStorage.removeItem('jichibang_records');
+  // 清理人员名单、负责人列表、状态选项
+  localStorage.removeItem('cfg_people');
+  localStorage.removeItem('cfg_leader');
+  localStorage.removeItem('cfg_status4');
+  
+  // 清理版本相关数据
+  localStorage.removeItem('bendibanben');
+  localStorage.removeItem('bediyunbanben');
+  
+  // 隐藏同步窗口
+  document.getElementById('syncIframeContainer').style.display = 'none';
+  
+  // 关闭登录菜单
+  document.getElementById('loginMenu').style.display = 'none';
+  
+  // 更新登录状态
+  updateLoginStatus();
+  
+  // 刷新页面，确保所有状态都更新
+  location.reload();
+}
+
+function cancelLogout() {
+  // 取消退出登录
+  if (logoutInterval) {
+    clearInterval(logoutInterval);
+  }
+  
+  // 隐藏弹窗
+  document.getElementById('logoutModal').style.display = 'none';
+  
+  // 恢复退出登录按钮
+  const logoutBtn = document.querySelector('#loginMenu div[onclick="logout()"]');
+  if (logoutBtn) {
+    logoutBtn.onclick = logout;
+    logoutBtn.style.opacity = '1';
+    logoutBtn.style.cursor = 'pointer';
+  }
+  
+  isLoggingOut = false;
+}
+
+function retrySync() {
+  // 再次同步
+  clearInterval(logoutInterval);
+  
+  // 重新开始加载动画
+  let dotCount = 0;
+  const loadingElement = document.getElementById('logoutLoading');
+  const loadingInterval = setInterval(() => {
+    dotCount = (dotCount + 1) % 4;
+    loadingElement.textContent = '重新同步中' + '.'.repeat(dotCount);
+  }, 500);
+  
+  // 显示加载状态
+  document.getElementById('logoutMessage').textContent = '正在重新同步数据，请稍等...';
+  document.getElementById('logoutLoading').textContent = '重新同步中';
+  // 隐藏按钮
+  document.getElementById('logoutCancelBtn').style.display = 'inline-block';
+  document.getElementById('logoutRetryBtn').style.display = 'none';
+  document.getElementById('logoutForceBtn').style.display = 'none';
+  document.getElementById('logoutConfirmBtn').style.display = 'none';
+  
+  // 从tongbu.html iframe调用同步
+  const syncIframe = document.getElementById('syncIframe');
+  try {
+    // 尝试调用tongbu.html中的doSync方法
+    syncIframe.contentWindow.doSync();
+    console.log('已调用tongbu.html的doSync方法');
+  } catch (e) {
+    console.error('调用tongbu.html的doSync失败:', e);
+    try {
+      // 尝试发送消息触发同步
+      syncIframe.contentWindow.postMessage('triggerSync', '*');
+      console.log('已向tongbu.html发送同步请求');
+    } catch (e2) {
+      console.error('向tongbu.html发送同步请求失败:', e2);
+    }
+  }
+  
+  // 重新开始检查同步状态
+  let checkCount = 0;
+  const maxChecks = 20; // 最多检查20次（10秒）
+  
+  logoutInterval = setInterval(() => {
+    checkCount++;
+    
+    // 检查本地版本和云端版本
+    const updatedLocalVersion = parseInt(localStorage.getItem('bendibanben') || 0);
+    const updatedCloudVersion = parseInt(localStorage.getItem('bediyunbanben') || 0);
+    
+    console.log(`检查同步状态: 本地版本=${updatedLocalVersion}, 云端版本=${updatedCloudVersion}, 检查次数=${checkCount}`);
+    
+    if (updatedLocalVersion === updatedCloudVersion) {
+      // 版本一致，执行退出
+      clearInterval(logoutInterval);
+      clearInterval(loadingInterval);
+      document.getElementById('logoutMessage').textContent = '同步完成，准备退出...';
+      document.getElementById('logoutLoading').textContent = '同步成功';
+      document.getElementById('logoutCancelBtn').style.display = 'none';
+      document.getElementById('logoutRetryBtn').style.display = 'none';
+      document.getElementById('logoutForceBtn').style.display = 'none';
+      document.getElementById('logoutConfirmBtn').style.display = 'inline-block';
+      console.log('版本一致，准备退出');
+    } else if (checkCount >= maxChecks) {
+      // 超过最大检查次数，显示重试和强制退出选项
+      clearInterval(logoutInterval);
+      clearInterval(loadingInterval);
+      document.getElementById('logoutMessage').textContent = '同步失败，是否再次同步或强制退出？';
+      document.getElementById('logoutLoading').textContent = '同步失败';
+      // 显示再次同步和强制退出按钮
+      document.getElementById('logoutCancelBtn').style.display = 'inline-block';
+      document.getElementById('logoutRetryBtn').style.display = 'inline-block';
+      document.getElementById('logoutForceBtn').style.display = 'inline-block';
+      document.getElementById('logoutConfirmBtn').style.display = 'none';
+      console.log('同步失败，超过最大尝试次数');
+    }
+  }, 500); // 每0.5秒检查一次
+}
+
+function forceLogout() {
+  // 强制退出，提醒会清空本地数据
+  if (confirm('强制退出会清空本地数据，确定要继续吗？')) {
+    // 隐藏弹窗
+    document.getElementById('logoutModal').style.display = 'none';
+    // 执行退出登录，清空本地数据
+    performLogout(1); // 传入1，确保执行清空操作
+  }
+}
+
+function confirmLogout() {
+  // 隐藏弹窗
+  document.getElementById('logoutModal').style.display = 'none';
+  
+  // 执行退出登录
+  performLogout(0);
+}
+
+// 点击登录/用户名时的处理
+function handleLoginClick() {
+  const yonghuID = localStorage.getItem('yonghuID');
+  if (yonghuID) {
+    toggleLoginMenu();
+  } else {
+    showLoginIframe();
+  }
+}
+
+// 点击页面其他地方关闭登录菜单
+document.addEventListener('click', function(e) {
+  const loginStatus = document.getElementById('loginStatus');
+  const loginMenu = document.getElementById('loginMenu');
+  if (!loginStatus.contains(e.target)) {
+    loginMenu.style.display = 'none';
+  }
+});
+
+// 接收登录成功的通知
+window.addEventListener('message', function(e) {
+  if (e.data === 'loginSuccess') {
+    hideLoginIframe();
+  }
+});
+
+// ====================== 原有后台拖动 ======================
 let isDragging = false;
 let dragStartX,dragStartY,iframeX,iframeY;
 document.getElementById('iframeHeader').addEventListener('mousedown',startDrag);
@@ -535,8 +1116,9 @@ function startDrag(e){
   isDragging = true;
   const c = document.getElementById('adminIframeContainer');
   dragStartX = e.clientX; dragStartY = e.clientY;
-  iframeX = parseInt(c.style.left || c.offsetLeft);
-  iframeY = parseInt(c.style.top || c.offsetTop);
+  // 直接使用offsetLeft和offsetTop，避免style.left为NaN时的问题
+  iframeX = c.offsetLeft;
+  iframeY = c.offsetTop;
   document.body.style.userSelect = 'none';
 }
 function drag(e){
@@ -546,7 +1128,7 @@ function drag(e){
   const dy = e.clientY - dragStartY;
   c.style.left = iframeX+dx+'px';
   c.style.top = iframeY+dy+'px';
-  c.style.transform = 'none';
+  // 移除transform设置，避免跳动
 }
 function stopDrag(){
   isDragging = false;
@@ -556,11 +1138,8 @@ function stopDrag(){
 function showAdminIframe(){document.getElementById('adminIframeContainer').style.display='block'}
 function hideAdminIframe(){
   document.getElementById('adminIframeContainer').style.display='none';
-  // 关闭时自动刷新主页
-  location.reload();
 }
 
-// 密码弹窗逻辑
 function openPasswordModal(){
   showModal('passwordModal');
   document.getElementById("adminPassword").value = "";
@@ -575,21 +1154,70 @@ function checkAdminPassword(){
   }
 }
 
-function getTrash(){try{return JSON.parse(localStorage.getItem(TRASH_KEY))||[]}catch{return[]}}
+// ====================== 业务逻辑 ======================
+
+function getTrash(){try{return JSON.parse(localStorage.getItem(getCurrentTrashKey()))||[]}catch{return[]}}
 function setTrash(arr){
   arr=arr.filter(Boolean);
   if(arr.length>100)arr=arr.slice(-100);
-  localStorage.setItem(TRASH_KEY,JSON.stringify(arr));
+  localStorage.setItem(getCurrentTrashKey(),JSON.stringify(arr));
 }
 function addToTrash(item){const t=getTrash();t.push(item);setTrash(t)}
 function addManyToTrash(items){const t=getTrash();t.push(...items);setTrash(t)}
 
+// 获取所有相关的回收站键
+function getAllTrashKeys() {
+  const keys = [];
+  // 添加默认回收站
+  keys.push(DEFAULT_TRASH_KEY);
+  // 添加当前用户的回收站
+  const yonghuID = localStorage.getItem('yonghuID');
+  if (yonghuID) {
+    keys.push(`${yonghuID}_${DEFAULT_TRASH_KEY}`);
+  }
+  return keys;
+}
+
+// 获取合并后的回收站数据
+function getCombinedTrash() {
+  const allTrash = [];
+  const keys = getAllTrashKeys();
+  
+  keys.forEach(key => {
+    try {
+      const trash = JSON.parse(localStorage.getItem(key)) || [];
+      allTrash.push(...trash);
+    } catch (e) {
+      console.log(`读取回收站 ${key} 失败:`, e);
+    }
+  });
+  
+  // 按时间排序，最新的在前
+  allTrash.sort((a, b) => {
+    return new Date(b.time) - new Date(a.time);
+  });
+  
+  return allTrash;
+}
+
 function getPeopleText(){return localStorage.getItem(PEOPLE_KEY)||"人1\n人2\n人3\n人4\n人5"}
-function setPeopleText(t){localStorage.setItem(PEOPLE_KEY,t)}
+function setPeopleText(t){
+  // 只有登录用户才执行bendibanben+1
+  if(localStorage.getItem('yonghuID')){
+    incLocalVersion();
+  }
+  localStorage.setItem(PEOPLE_KEY,t);
+}
 function getPeople(){return getPeopleText().split("\n").map(x=>x.trim()).filter(Boolean)}
 
 function getLeaderText(){return localStorage.getItem(LEADER_KEY)||"组长A\n组长B\n组长C"}
-function setLeaderText(t){localStorage.setItem(LEADER_KEY,t)}
+function setLeaderText(t){
+  // 只有登录用户才执行bendibanben+1
+  if(localStorage.getItem('yonghuID')){
+    incLocalVersion();
+  }
+  localStorage.setItem(LEADER_KEY,t);
+}
 function getLeaders(){return getLeaderText().split("\n").map(x=>x.trim()).filter(Boolean)}
 
 function loadLeaderSelect(){
@@ -606,7 +1234,13 @@ function getStatusText(){
 请假>病假>居家>康复中
 请假>事假>外出>处理私事`;
 }
-function setStatusText(t){localStorage.setItem(STATUS_KEY,t)}
+function setStatusText(t){
+  // 只有登录用户才执行bendibanben+1
+  if(localStorage.getItem('yonghuID')){
+    incLocalVersion();
+  }
+  localStorage.setItem(STATUS_KEY,t);
+}
 
 function getStatusTree(){
   const tree={};
@@ -618,7 +1252,6 @@ function getStatusTree(){
   return tree;
 }
 
-// 弹窗打开函数修复
 function openPeopleEdit(){
   document.getElementById("peopleText").value = getPeopleText();
   document.getElementById("leaderText").value = getLeaderText();
@@ -632,12 +1265,14 @@ function openStatusEdit(){
 function savePeopleAndLeader(){
   setPeopleText(document.getElementById("peopleText").value);
   setLeaderText(document.getElementById("leaderText").value);
-  closePeopleModal();renderAll();
+  closePeopleModal();
+  partialRefreshRecords(); // 局部刷新
 }
 
 function saveStatus(){
   setStatusText(document.getElementById("statusText").value);
-  closeStatusModal();renderAll();
+  closeStatusModal();
+  partialRefreshRecords(); // 局部刷新
 }
 
 function loadLv1(){
@@ -679,7 +1314,13 @@ function now(){
 }
 
 function getRecords(){try{return JSON.parse(localStorage.getItem(STORAGE_KEY))||[]}catch{return[]}}
-function setRecords(r){localStorage.setItem(STORAGE_KEY,JSON.stringify(r))}
+function setRecords(r){
+  // 只有登录用户才执行bendibanben+1
+  if(localStorage.getItem('yonghuID')){
+    incLocalVersion();
+  }
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(r));
+}
 
 function generate(){
   const custom=document.getElementById("customInput").value.trim();
@@ -704,14 +1345,16 @@ function generate(){
   setRecords(list);
   document.getElementById("customInput").value="";
   document.getElementById("leaderSelect").selectedIndex=0;
-  clearSelected();loadLv1();renderRecords();alert("已生成");
+  clearSelected();loadLv1();
+  partialRefreshRecords(); // 局部刷新
+  alert("已生成");
 }
 
 function clearSelected(){document.querySelectorAll(".item.active").forEach(x=>x.classList.remove("active"))}
 
 function showMore(){
   showLimit+=5;
-  renderRecords();
+  partialRefreshRecords();
 }
 
 function copyRecord(rec){
@@ -754,7 +1397,10 @@ function saveEditedPeople(){
   target.people=selectedNames.map(name=>({name:name,active:currentRecordPeopleMap[name]??true,type:"normal"}));
   target.status=editStatus;
   target.leader=document.getElementById("editLeaderSelect").value;
-  setRecords(records);closeEditPeopleModal();renderRecords();renderStarPage();alert("修改成功");
+  setRecords(records);
+  closeEditPeopleModal();
+  partialRefreshRecords();
+  alert("修改成功");
 }
 
 function openNoteModal(index){
@@ -767,12 +1413,15 @@ function saveNote(){
   if(currentNoteIndex===-1)return;
   const records=getRecords();
   records[currentNoteIndex].note=document.getElementById("noteInput").value.trim();
-  setRecords(records);closeNoteModal();renderRecords();renderStarPage();
+  setRecords(records);
+  closeNoteModal();
+  partialRefreshRecords();
 }
 
 function toggleStar(index){
   const records=getRecords();records[index].star=!records[index].star;
-  setRecords(records);renderRecords();renderStarPage();
+  setRecords(records);
+  partialRefreshRecords();
 }
 
 function showMainPage(){
@@ -786,56 +1435,99 @@ function showAllPage(){
   document.querySelector(".all-page").style.display="block";
   document.querySelector(".star-page").style.display="none";
   document.querySelector(".trash-page").style.display="none";
-  renderRecords();
+  partialRefreshRecords();
 }
 function showStarPage(){
   document.querySelector(".main-page").style.display="none";
   document.querySelector(".all-page").style.display="none";
   document.querySelector(".star-page").style.display="block";
   document.querySelector(".trash-page").style.display="none";
-  renderStarPage();
+  partialRefreshRecords();
 }
 function showTrashPage(){
   document.querySelector(".main-page").style.display="none";
   document.querySelector(".all-page").style.display="none";
   document.querySelector(".star-page").style.display="none";
   document.querySelector(".trash-page").style.display="block";
-  renderTrashPage();
+  partialRefreshRecords();
 }
 
 function clearAllRecords(){
   if(!confirm("确定清空全部记录？"))return;
   const records=getRecords();addManyToTrash(records);
+  // 只有登录用户才执行bendibanben+1
+  if(localStorage.getItem('yonghuID')){
+    incLocalVersion();
+  }
   localStorage.removeItem(STORAGE_KEY);
-  renderRecords();renderStarPage();
+  partialRefreshRecords();
 }
 function clearStarRecords(){
   if(!confirm("确定清空收藏？"))return;
   const records=getRecords();const starItems=records.filter(r=>r.star);
   addManyToTrash(starItems);records.forEach(r=>r.star=false);
-  setRecords(records);renderStarPage();
+  setRecords(records);
+  partialRefreshRecords();
 }
 function clearTrash(){
   if(!confirm("确定清空回收站？"))return;
-  localStorage.removeItem(TRASH_KEY);renderTrashPage();
+  // 清空当前用户的回收站
+  localStorage.removeItem(getCurrentTrashKey());
+  partialRefreshRecords();
+}
+
+// 清空所有用户的回收站（谨慎使用）
+function clearAllTrash() {
+  if(!confirm("确定清空所有回收站？"))return;
+  const keys = getAllTrashKeys();
+  keys.forEach(key => {
+    localStorage.removeItem(key);
+  });
+  partialRefreshRecords();
 }
 
 function restoreFromTrash(idx){
-  const trash=getTrash();const item=trash[idx];
+  const trash=getCombinedTrash();const item=trash[idx];
   if(!item)return;
   const records=getRecords();
   const hasSameId=records.some(r=>r.id&&item.id&&r.id===item.id);
   if(hasSameId){alert("ID重复，无法撤回");return;}
-  trash.splice(idx,1);
-  setTrash(trash);
+  
+  // 从所有回收站中删除该项目
+  const keys = getAllTrashKeys();
+  keys.forEach(key => {
+    try {
+      const trashData = JSON.parse(localStorage.getItem(key)) || [];
+      const updatedTrash = trashData.filter(t => t.id !== item.id);
+      localStorage.setItem(key, JSON.stringify(updatedTrash));
+    } catch (e) {
+      console.log(`更新回收站 ${key} 失败:`, e);
+    }
+  });
+  
   records.unshift(item);
   setRecords(records);
-  renderTrashPage();renderRecords();renderStarPage();
+  partialRefreshRecords();
 }
 
 function deleteFromTrash(idx){
   if(!confirm("确定彻底删除？"))return;
-  const trash=getTrash();trash.splice(idx,1);setTrash(trash);renderTrashPage();
+  const trash=getCombinedTrash();const item=trash[idx];
+  if(!item)return;
+  
+  // 从所有回收站中删除该项目
+  const keys = getAllTrashKeys();
+  keys.forEach(key => {
+    try {
+      const trashData = JSON.parse(localStorage.getItem(key)) || [];
+      const updatedTrash = trashData.filter(t => t.id !== item.id);
+      localStorage.setItem(key, JSON.stringify(updatedTrash));
+    } catch (e) {
+      console.log(`更新回收站 ${key} 失败:`, e);
+    }
+  });
+  
+  partialRefreshRecords();
 }
 
 function makeRecordItem(realIndex){
@@ -868,7 +1560,7 @@ function makeRecordItem(realIndex){
     s.onclick=()=>{
       if(!confirm("确定切换状态？"))return;
       rec.people[i].active=!rec.people[i].active;
-      const all=getRecords();all[realIndex].people=rec.people;setRecords(all);renderRecords();renderStarPage();
+      const all=getRecords();all[realIndex].people=rec.people;setRecords(all);partialRefreshRecords();
     };
     pw.appendChild(s);
   });
@@ -896,7 +1588,7 @@ function makeRecordItem(realIndex){
   delBtn.onclick=()=>{
     if(!confirm("确定删除？"))return;
     const data=getRecords();const delItem=data.splice(realIndex,1)[0];
-    addToTrash(delItem);setRecords(data);renderRecords();renderStarPage();
+    addToTrash(delItem);setRecords(data);partialRefreshRecords();
   };
   btns.append(editBtn,cpBtn,noteBtn,delBtn);
   card.appendChild(btns);
@@ -904,7 +1596,7 @@ function makeRecordItem(realIndex){
 }
 
 function makeTrashItem(idx){
-  const trash=getTrash();const rec=trash[idx];
+  const trash=getCombinedTrash();const rec=trash[idx];
   const card=document.createElement("div");card.className="record-card";
 
   const header=document.createElement("div");header.className="record-header";
@@ -968,12 +1660,16 @@ function renderStarPage(){
 }
 
 function renderTrashPage(){
-  const trash=getTrash();const box=document.getElementById("trashRecords");box.innerHTML="";
+  const trash=getCombinedTrash();const box=document.getElementById("trashRecords");box.innerHTML="";
   trash.forEach((_,idx)=>box.appendChild(makeTrashItem(idx)));
 }
 
 function renderAll(){
   renderPeople();loadLeaderSelect();loadLv1();renderRecords();
+  // 更新登录状态
+  updateLoginStatus();
+  // 绑定登录点击事件
+  document.getElementById('loginText').addEventListener('click', handleLoginClick);
 }
 
 renderAll();
