@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<!DOCTYPE html>
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <meta charset="utf-8" name="viewport" content="width=device-width, initial-scale=1.0">
 <title>快速记事</title>
@@ -657,6 +657,11 @@ function hideAllModals(){
   document.querySelectorAll('.modal').forEach(m=>{
     m.style.display = "none";
   });
+  // 清空密码输入框，确保密码不会残留
+  const passwordInput = document.getElementById("adminPassword");
+  if (passwordInput) {
+    passwordInput.value = "";
+  }
   isEditing = false;
 }
 
@@ -672,7 +677,11 @@ function closeNoteModal(){
 }
 function closePeopleModal(){ hideAllModals() }
 function closeStatusModal(){ hideAllModals() }
-function closePasswordModal(){ hideAllModals() }
+function closePasswordModal(){
+  // 清空密码输入框
+  document.getElementById('adminPassword').value = '';
+  hideAllModals()
+}
 
 // ====================== 同步窗口拖动 ======================
 let isSyncDragging = false;
@@ -1145,7 +1154,12 @@ function openPasswordModal(){
   document.getElementById("adminPassword").value = "";
 }
 function checkAdminPassword(){
-  const pwd = document.getElementById("adminPassword").value.trim();
+  const passwordInput = document.getElementById("adminPassword");
+  const pwd = passwordInput.value.trim();
+  
+  // 立即清空密码输入框，防止密码残留
+  passwordInput.value = "";
+  
   if(pwd==="666666"){
     hideAllModals();
     showAdminIframe();
