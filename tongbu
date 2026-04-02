@@ -1,0 +1,638 @@
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>IFRAME 智能同步面板</title>
+  <style>
+    *{box-sizing:border-box;font-family:system-ui,sans-serif}
+    body{margin:0;padding:12px;background:#f7f8fa}
+    .card{background:#fff;border-radius:12px;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,0.1)}
+    .section{margin-bottom:12px}
+    label{font-weight:500;font-size:14px;margin-bottom:4px;display:block}
+    input,button{border-radius:6px;border:1px solid #ddd;padding:8px 10px;font-size:14px}
+    .btn-row{display:flex;gap:8px;margin:8px 0;flex-wrap:wrap}
+    button{cursor:pointer;border:none;color:#fff}
+    .btn-sync{background:#0071e3}
+    .btn-auto{background:#28a745}
+    .btn-stop{background:#6c757d}
+    .btn-refresh{background:#17a2b8}
+    .btn-ws{background:#9c27b0}
+    .version-row{display:flex;gap:8px;flex-wrap:wrap;font-size:13px;margin:8px 0}
+    .tag{background:#e9ecef;padding:4px 8px;border-radius:6px}
+    .log-box{height:160px;background:#f8f9fa;border:1px solid #ddd;border-radius:8px;padding:8px;
+      font-size:12px;white-space:pre-wrap;overflow-y:auto;margin-top:6px}
+    .status{padding:8px 10px;border-radius:6px;margin:8px 0;font-size:14px}
+    .status-success{background:#e8f5e9;color:#1b5e20}
+    .status-error{background:#ffebee;color:#b71c1c}
+    .status-info{background:#e3f2fd;color:#0d47a1}
+    .ws-row{display:flex;gap:8px;margin:8px 0}
+    #wsChat{flex:1}
+    /* 新增配置行样式 */
+    .config-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0}
+    .config-row label{margin:0;font-size:12px}
+    .config-row input{width:60px;font-size:12px}
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <!-- 原有同步状态 -->
+  <div class="section">
+    <label id="syncStatusLabel">同步状态（主动同步: 关闭）</label>
+    <div id="statusText" class="status status-info">等待操作</div>
+  </div>
+
+  <!-- WebSocket 连接状态 -->
+  <div class="section">
+    <label>WebSocket 状态</label>
+    <div id="wsStatus" class="status status-info">未连接</div>
+  </div>
+
+  <!-- 版本信息 -->
+  <div class="version-row">
+    <div class="tag">本地版本: <span id="v_local">0</span></div>
+    <div class="tag">所知云端: <span id="v_cloud">0</span></div>
+    <div class="tag">LSID: <span id="v_lsid">0</span></div>
+    <div class="tag">用户ID: <span id="v_yonghu">未设置</span></div>
+  </div>
+
+  <!-- 用户ID设置 -->
+  <div class="section">
+    <label>👤 用户ID设置</label>
+    <div class="config-row">
+      <input type="text" id="yonghuID" placeholder="输入用户ID" style="flex:1;">
+      <button class="btn-sync" onclick="saveYonghuID()">确认写入</button>
+    </div>
+  </div>
+
+  <!-- 【新增】WebSocket 配置项 -->
+  <div class="section">
+    <label>⚙️ WebSocket 配置</label>
+    <div class="config-row">
+      <label>心跳间隔(秒):</label>
+      <input type="number" id="heartbeatSec" value="60" min="10">
+      <label>广播次数:</label>
+      <input type="number" id="broadcastCount" value="3" min="1">
+      <label>广播间隔(秒):</label>
+      <input type="number" id="broadcastSec" value="10" min="1">
+    </div>
+  </div>
+
+  <!-- 【新增】主动同步配置项 -->
+  <div class="section">
+    <label>⚙️ 主动同步配置</label>
+    <div class="config-row">
+      <label>无差异间隔(秒):</label>
+      <input type="number" id="syncNoDiff" value="300" min="10">
+      <label>有差异间隔(秒):</label>
+      <input type="number" id="syncDiff" value="30" min="5">
+      <label>差异阈值:</label>
+      <input type="number" id="diffLimit" value="10" min="1">
+      <label>最长运行时间(小时):</label>
+      <input type="number" id="maxRunTime" value="4" min="1" max="24">
+    </div>
+  </div>
+
+  <!-- 功能按钮（改名：自动同步→主动同步） -->
+  <div class="btn-row">
+    <button class="btn-sync" onclick="doSync()">🔄 立即同步</button>
+    <button class="btn-auto" onclick="startAuto()">▶️ 主动同步</button>
+    <button class="btn-stop" onclick="stopAuto()">⏹️ 停止主动</button>
+    <button class="btn-refresh" onclick="refreshVersion()">🔁 刷新显示</button>
+  </div>
+
+  <!-- WebSocket 聊天测试框 -->
+  <div class="ws-row">
+    <input type="text" id="wsChat" placeholder="输入测试文本，发送到WebSocket...">
+    <button class="btn-ws" onclick="sendWsChat()">📩 发送测试</button>
+  </div>
+
+  <!-- 原有日志 -->
+  <div class="section">
+    <label>📤 发送数据日志</label>
+    <div id="logSend" class="log-box">等待发送...</div>
+  </div>
+  <div class="section">
+    <label>📥 返回数据日志</label>
+    <div id="logResp" class="log-box">等待返回...</div>
+  </div>
+
+  <!-- 新增 WebSocket 日志 -->
+  <div class="section">
+    <label>🔌 WebSocket 日志</label>
+    <div id="wsLog" class="log-box">等待WebSocket消息...</div>
+  </div>
+</div>
+
+<script>
+// ==========================================
+// 固定配置
+// ==========================================
+const API_URL = "https://1408347752-dxgsap4qrj.ap-guangzhou.tencentscf.com";
+const WEBHOOK_URL = "https://www.kdocs.cn/api/v3/ide/file/cgB1g30d49xW/script/V2-350tGnoIv3cFg8GvJrrg7x/sync_task";
+const WS_URL = "wss://free.blr2.piesocket.com/v3/test-channel-1?api_key=ReDFavhh0qnOCKUUjQiLKVZ9RdxA6e4BGVKxxNug";
+
+// 本地存储 KEY
+const STORAGE_KEYS = {
+  bendibanben: "bendibanben",
+  bediyunbanben: "bediyunbanben",
+  lsid: "sync_lsid_10digit",
+  yonghuID: "yonghuID",
+
+  records: "jichibang_records",
+  people: "cfg_people",
+  leader: "cfg_leader",
+  status4: "cfg_status4"
+};
+
+let autoTimer = null;
+// WebSocket 全局变量
+let ws = null;
+let wsReconnectTimer = null;
+let heartbeatTimer = null; // 心跳定时器
+let broadcastTimers = []; // 版本广播重试定时器
+const reconnectDelay = 3000;
+
+// ==========================================
+// 10 位 LSID
+// ==========================================
+function getLSID() {
+  let idStr = localStorage.getItem(STORAGE_KEYS.lsid);
+  if (!idStr) {
+    const num = Math.floor(1000000000 + Math.random() * 9000000000);
+    idStr = String(num);
+    localStorage.setItem(STORAGE_KEYS.lsid, idStr);
+  }
+  return Number(idStr);
+}
+
+// ==========================================
+// 用户ID管理
+// ==========================================
+function getYonghuID() {
+  return localStorage.getItem(STORAGE_KEYS.yonghuID) || "";
+}
+
+
+
+function saveYonghuID() {
+  const yonghuID = document.getElementById("yonghuID").value.trim();
+  if (yonghuID) {
+    localStorage.setItem(STORAGE_KEYS.yonghuID, yonghuID);
+    document.getElementById("v_yonghu").innerText = yonghuID;
+    setStatus("用户ID已保存", false);
+  } else {
+    setStatus("请输入用户ID", true);
+  }
+}
+
+// 清空当前用户痕迹
+function clearUserTraces() {
+  try {
+    // 清空相关数据
+    localStorage.removeItem(STORAGE_KEYS.records);
+    localStorage.removeItem(STORAGE_KEYS.people);
+    localStorage.removeItem(STORAGE_KEYS.leader);
+    localStorage.removeItem(STORAGE_KEYS.status4);
+    localStorage.removeItem(STORAGE_KEYS.bendibanben);
+    localStorage.removeItem(STORAGE_KEYS.bediyunbanben);
+    
+    appendWsLog("🧹 已清空当前用户痕迹");
+    return true;
+  } catch (error) {
+    appendWsLog(`❌ 清空用户痕迹失败: ${error.message}`);
+    return false;
+  }
+}
+
+// ==========================================
+// 版本号
+// ==========================================
+function getLocalVer() {
+  const v = Number(localStorage.getItem(STORAGE_KEYS.bendibanben));
+  return isNaN(v) ? 0 : v;
+}
+function getBediyunbanben() {
+  const v = Number(localStorage.getItem(STORAGE_KEYS.bediyunbanben));
+  return isNaN(v) ? 0 : v;
+}
+
+// ==========================================
+// 读取本地数据
+// ==========================================
+function getLocalData() {
+  return {
+    records: JSON.parse(localStorage.getItem(STORAGE_KEYS.records) || "[]"),
+    people: localStorage.getItem(STORAGE_KEYS.people) || "",
+    leader: localStorage.getItem(STORAGE_KEYS.leader) || "",
+    status4: localStorage.getItem(STORAGE_KEYS.status4) || "",
+    yonghuID: getYonghuID() || ""
+  };
+}
+
+// ==========================================
+// 覆盖本地数据
+// ==========================================
+function applyCloudData(yunbanben, yunxinxi) {
+  try {
+    const data = JSON.parse(yunxinxi);
+    localStorage.setItem(STORAGE_KEYS.records, JSON.stringify(data.records || []));
+    localStorage.setItem(STORAGE_KEYS.people, data.people || "");
+    localStorage.setItem(STORAGE_KEYS.leader, data.leader || "");
+    localStorage.setItem(STORAGE_KEYS.status4, data.status4 || "");
+
+    localStorage.setItem(STORAGE_KEYS.bediyunbanben, String(yunbanben));
+    localStorage.setItem(STORAGE_KEYS.bendibanben, String(Math.floor(yunbanben)));
+    refreshVersion();
+    return true;
+  } catch (e) {
+    console.error("覆盖失败", e);
+    return false;
+  }
+}
+
+// ==========================================
+// 界面刷新
+// ==========================================
+function refreshVersion() {
+  document.getElementById("v_local").innerText = getLocalVer();
+  document.getElementById("v_cloud").innerText = getBediyunbanben();
+  document.getElementById("v_lsid").innerText = getLSID();
+  document.getElementById("v_yonghu").innerText = getYonghuID() || "未设置";
+}
+
+// ==========================================
+// 状态提示
+// ==========================================
+function updateSyncStatusLabel() {
+  const label = document.getElementById("syncStatusLabel");
+  const autoSyncStatus = autoTimer ? "已开启" : "已关闭";
+  label.textContent = `同步状态（主动同步: ${autoSyncStatus}）`;
+}
+
+function setStatus(text, isError = false) {
+  const el = document.getElementById("statusText");
+  el.innerText = text;
+  el.className = "status " + (isError ? "status-error" : "status-success");
+  // 更新同步状态标签
+  updateSyncStatusLabel();
+}
+
+function setWsStatus(text, isError = false) {
+  const el = document.getElementById("wsStatus");
+  el.innerText = text;
+  el.className = "status " + (isError ? "status-error" : "status-success");
+}
+
+// ==========================================
+// 日志输出
+// ==========================================
+function appendWsLog(msg) {
+  const log = document.getElementById("wsLog");
+  const time = new Date().toLocaleTimeString();
+  log.innerText = `[${time}] ${msg}\n` + log.innerText;
+}
+
+// ==========================================
+// 通知父页面刷新
+// ==========================================
+function notifyParentToRefresh() {
+  try {
+    if (window.parent !== window) {
+      window.parent.postMessage("refreshFromCloud", "*");
+    }
+  } catch (e) {}
+}
+
+// ==========================================
+// 【新增】心跳机制
+// ==========================================
+function startHeartbeat() {
+  stopHeartbeat();
+  const sec = Number(document.getElementById("heartbeatSec").value) || 60;
+  heartbeatTimer = setInterval(() => {
+    sendWsMessage({type: "ping", action: "heartbeat", time: new Date().toLocaleString()});
+    appendWsLog(`💓 自动心跳发送成功 (${sec}s/次)`);
+  }, sec * 1000);
+  appendWsLog(`✅ 心跳已启动，间隔 ${sec} 秒`);
+}
+
+function stopHeartbeat() {
+  if (heartbeatTimer) clearInterval(heartbeatTimer);
+}
+
+// ==========================================
+// 【新增】清空广播定时器
+// ==========================================
+function clearBroadcastTimers() {
+  broadcastTimers.forEach(t => clearTimeout(t));
+  broadcastTimers = [];
+}
+
+// ==========================================
+// WebSocket 核心
+// ==========================================
+function initWebSocket() {
+  if (ws) ws.close();
+  clearBroadcastTimers();
+  
+  ws = new WebSocket(WS_URL);
+  
+  ws.onopen = () => {
+    setWsStatus("WebSocket 已连接 ✅");
+    appendWsLog("✅ 长连接建立成功");
+    clearTimeout(wsReconnectTimer);
+    startHeartbeat(); // 连接成功启动心跳
+  };
+
+  ws.onmessage = (e) => {
+    try {
+      const data = JSON.parse(e.data);
+      appendWsLog(`📥 收到消息：${JSON.stringify(data)}`);
+
+      if (data.type === "version" && data.yunbanben) {
+        // 检查用户ID是否匹配
+        if (data.yonghuID && data.yonghuID !== getYonghuID()) {
+          appendWsLog(`🔇 忽略其他用户的版本更新：${data.yonghuID}`);
+          return;
+        }
+        
+        const remoteVersion = Number(data.yunbanben);
+        const localCloudVersion = getBediyunbanben();
+        
+        appendWsLog(`🔍 对比版本 | 远程: ${remoteVersion} | 本地云端: ${localCloudVersion}`);
+        
+        if (remoteVersion > localCloudVersion) {
+          appendWsLog(`🚨 远程版本更高，自动触发同步`);
+          doSync();
+        }
+      }
+    } catch (err) {
+      appendWsLog(`📥 收到纯文本：${e.data}`);
+    }
+  };
+
+  ws.onclose = () => {
+    setWsStatus("WebSocket 已断开 ❌", true);
+    appendWsLog(`❌ 连接断开，${reconnectDelay/1000}秒后重连...`);
+    stopHeartbeat();
+    clearBroadcastTimers();
+    wsReconnectTimer = setTimeout(initWebSocket, reconnectDelay);
+  };
+
+  ws.onerror = (err) => {
+    setWsStatus("WebSocket 连接失败 ❌", true);
+    appendWsLog(`❌ 连接错误：${err.message}`);
+  };
+}
+
+// 发送WS消息
+function sendWsMessage(data) {
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
+    appendWsLog(`❌ 发送失败：WebSocket未连接`);
+    return;
+  }
+  const msg = JSON.stringify(data);
+  ws.send(msg);
+}
+
+// ==========================================
+// 【修改】版本广播：支持多次重试
+// ==========================================
+function sendVersionToWs(yunbanben) {
+  clearBroadcastTimers();
+  const count = Number(document.getElementById("broadcastCount").value) || 3;
+  const sec = Number(document.getElementById("broadcastSec").value) || 10;
+  
+  // 立即发送第一次
+  const send = () => {
+    const data = {
+      type: "version",
+      yunbanben: yunbanben,
+      lsid: getLSID(),
+      yonghuID: getYonghuID(), // 添加用户ID
+      time: new Date().toLocaleString()
+    };
+    sendWsMessage(data);
+    appendWsLog(`📢 版本广播成功：v${yunbanben} (用户ID: ${getYonghuID()})`);
+  };
+  send();
+
+  // 重试发送 N 次
+  for (let i = 1; i < count; i++) {
+    const timer = setTimeout(send, i * sec * 1000);
+    broadcastTimers.push(timer);
+  }
+  appendWsLog(`✅ 版本广播计划：共${count}次，间隔${sec}秒`);
+}
+
+// 发送测试消息
+function sendWsChat() {
+  const input = document.getElementById("wsChat");
+  const content = input.value.trim();
+  if (!content) return;
+  
+  sendWsMessage({
+    type: "chat",
+    content: content,
+    lsid: getLSID(),
+    time: new Date().toLocaleString()
+  });
+  input.value = "";
+}
+
+// ==========================================
+// 核心同步
+// ==========================================
+async function doSync() {
+  const logSend = document.getElementById("logSend");
+  const logResp = document.getElementById("logResp");
+
+  setStatus("同步中…");
+  logSend.innerText = "打包中…";
+  logResp.innerText = "等待接口…";
+
+  const currentYonghuID = getYonghuID();
+
+  const bendibanben    = getLocalVer();
+  const bediyunbanben  = getBediyunbanben();
+  const LSID          = getLSID();
+  const bendixinxi    = JSON.stringify(getLocalData());
+
+  const body = {
+    webhookUrl: WEBHOOK_URL,
+    message: {
+      Context: {
+        argv: { bendibanben, bediyunbanben, bendixinxi, LSID, yonghuID: currentYonghuID }
+      }
+    }
+  };
+
+  logSend.innerText = JSON.stringify(body, null, 2);
+
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+
+    const txt = await res.text();
+    logResp.innerText = `状态: ${res.status}\n\n${txt}`;
+
+    let json;
+    try { json = JSON.parse(txt); } catch(e) {
+      setStatus("返回非 JSON", true);
+      return;
+    }
+
+    const r = json.data?.result || json;
+    const code = r.TZbianhao;
+    const msg = r.tongzhi || "无消息";
+    const yunbanben = Number(r.yunbanben || 0);
+    const yunxinxi = r.yunxinxi || "";
+
+    // 201/203/302：自然升级，无弹窗直接覆盖
+    const autoOverwrite = [201];
+    // 需要确认覆盖
+    const needConfirm = [202, 302];
+
+// ============== 501 上传成功 ==============
+if (code === 501) {
+  setStatus(`【${code}】${msg}，已广播版本号`);
+  sendVersionToWs(yunbanben);
+  applyCloudData(yunbanben, yunxinxi);
+  notifyParentToRefresh();
+}
+// ============== 201 唯一静默升级 ==============
+else if (code === 201) {
+  applyCloudData(yunbanben, yunxinxi);
+  notifyParentToRefresh();
+  setStatus(`【${code}】${msg}，已自动静默更新`);
+}
+// ============== 必须弹窗确认的覆盖场景 ==============
+else if ([202, 203, 302].includes(code)) {
+  if (!confirm(`【${code}】${msg}\n确定覆盖本地吗？`)) {
+    setStatus("已取消覆盖", true);
+    return;
+  }
+  applyCloudData(yunbanben, yunxinxi);
+  notifyParentToRefresh();
+  setStatus(`【${code}】${msg}，已覆盖本地数据`);
+}
+// ============== 其他普通状态 ==============
+else {
+  setStatus(`【${code}】${msg}`);
+}
+    refreshVersion();
+    
+
+
+  } catch (e) {
+    setStatus("同步异常：" + e.message, true);
+    logResp.innerText = "异常：" + e.toString();
+  }
+}
+
+// ==========================================
+// 【修改】主动同步（原自动同步）：智能差异逻辑
+// ==========================================
+// 记录上次版本号和时间
+let lastVersionCheck = {
+  local: 0,
+  cloud: 0,
+  time: Date.now()
+};
+
+function startAuto() {
+  stopAuto();
+  // 读取配置
+  const noDiffSec = Number(document.getElementById("syncNoDiff").value) || 300;
+  const diffSec = Number(document.getElementById("syncDiff").value) || 30;
+  const diffLimit = Number(document.getElementById("diffLimit").value) || 10;
+  const maxRunHours = Number(document.getElementById("maxRunTime").value) || 4;
+  const maxRunMs = maxRunHours * 60 * 60 * 1000; // 转换为毫秒
+
+  // 智能同步逻辑
+  const smartSync = () => {
+    const local = getLocalVer();
+    const cloud = getBediyunbanben();
+    const diff = Math.abs(cloud - local);
+
+    // 检查版本号是否变化
+    if (local !== lastVersionCheck.local || cloud !== lastVersionCheck.cloud) {
+      // 版本号有变化，更新记录
+      lastVersionCheck = {
+        local: local,
+        cloud: cloud,
+        time: Date.now()
+      };
+      appendWsLog(`📊 版本号变化: 本地=${local}, 云端=${cloud}`);
+    } else {
+      // 版本号无变化，检查是否超过最长运行时间
+      const currentTime = Date.now();
+      if (currentTime - lastVersionCheck.time > maxRunMs) {
+        // 超过最长运行时间，自动停止同步
+        appendWsLog(`⏰ 超过最长运行时间(${maxRunHours}小时)，版本号无变化，自动停止同步`);
+        stopAuto();
+        setStatus(`主动同步已自动停止（长时间无版本变化）`);
+        return;
+      }
+    }
+
+    // 顶级条件：差异>阈值 → 立即同步
+    if (diff > diffLimit) {
+      appendWsLog(`🚀 版本差异(${diff})>阈值(${diffLimit})，立即同步`);
+      doSync();
+    }
+    // 执行普通同步
+    doSync();
+  };
+
+  // 首次立即执行
+  smartSync();
+
+  // 设置循环定时器
+  autoTimer = setInterval(() => {
+    const local = getLocalVer();
+    const cloud = getBediyunbanben();
+    const diff = Math.abs(cloud - local);
+    
+    // 无差异用长间隔，有差异用短间隔
+    const interval = diff === 0 ? noDiffSec * 1000 : diffSec * 1000;
+    clearInterval(autoTimer);
+    autoTimer = setInterval(smartSync, interval);
+    
+    appendWsLog(`🔄 主动同步模式：${diff===0?'无差异':'有差异'}，间隔${diff===0?noDiffSec:diffSec}秒`);
+  }, 1000);
+
+  setStatus(`主动同步已启动`);
+  // 更新同步状态标签
+  updateSyncStatusLabel();
+}
+
+function stopAuto() {
+  if (autoTimer) clearInterval(autoTimer);
+  autoTimer = null;
+  setStatus("主动同步已停止");
+  // 更新同步状态标签
+  updateSyncStatusLabel();
+}
+
+// ==========================================
+// 初始化
+// ==========================================
+window.onload = () => {
+  refreshVersion();
+  // 显示用户ID
+  document.getElementById("v_yonghu").innerText = getYonghuID() || "未设置";
+  // 加载用户ID输入框
+  document.getElementById("yonghuID").value = getYonghuID();
+  setStatus("就绪");
+  initWebSocket();
+  // 默认开启主动同步
+  startAuto();
+};
+</script>
+</body>
+</html>
