@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<!DOCTYPE html>
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <meta charset="utf-8" name="viewport" content="width=device-width, initial-scale=1.0">
 <title>快速记事</title>
@@ -749,10 +749,6 @@ function doSync() {
   
   // 从tongbu.html iframe调用同步
   const syncIframe = document.getElementById('syncIframe');
-  const syncIframeContainer = document.getElementById('syncIframeContainer');
-  
-  // 显示同步窗口
-  syncIframeContainer.style.display = 'block';
   
   // 检查iframe是否已经加载了tongbu.html
   if (syncIframe.src === '' || !syncIframe.src.includes('tongbu.html')) {
