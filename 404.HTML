@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>Webhook 消息发送</title>
+  <style>
+    * {box-sizing:border-box;font-family:Arial;}
+    body {max-width:700px;margin:30px auto;padding:0 20px;background:#f5f5f5;}
+    .box {background:white;padding:20px;border-radius:10px;box-shadow:0 2px 5px rgba(0,0,0,0.1);}
+    h2 {margin-top:0;text-align:center;}
+    label {display:block;margin:12px 0 6px;font-weight:bold;}
+
+    .input-group {
+      display:flex;
+      gap:8px;
+      width:100%;
+    }
+    .input-group input {
+      flex:1;
+      padding:10px;
+      border:1px solid #ccc;
+      border-radius:6px;
+      font-size:14px;
+    }
+    .input-group select {
+      min-width:110px;
+      padding:10px;
+      border:1px solid #ccc;
+      border-radius:6px;
+      font-size:14px;
+      cursor:pointer;
+      background:#fff;
+    }
+
+    .msg-row {
+      display:flex;
+      gap:10px;
+      align-items:stretch;
+      margin-top:10px;
+    }
+    .msg-col {
+      flex:1;
+      display:flex;
+      flex-direction:column;
+    }
+    #message {
+      flex:1;
+      resize:vertical;
+      padding:10px;
+      border:1px solid #ccc;
+      border-radius:6px;
+      font-size:14px;
+    }
+    .btn-col {
+      width:120px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      align-items:stretch;
+    }
+    #sendBtn,#insertTemplateBtn {
+      width:100%;
+      padding:14px 10px;
+      border:none;
+      border-radius:8px;
+      font-size:15px;
+      cursor:pointer;
+    }
+    #sendBtn {background:#0071e3;color:#fff;}
+    #insertTemplateBtn {background:#34c759;color:#fff;}
+
+    .log-row {
+      display:flex;
+      gap:12px;
+      margin-top:20px;
+      width:100%;
+    }
+    .log-box {
+      flex:1;
+      min-width:0;
+    }
+    .log-box label {
+      font-size:13px;
+      margin-bottom:4px;
+    }
+    .log-content {
+      height:220px;
+      padding:10px;
+      background:#f8f9fa;
+      border:1px solid #ddd;
+      border-radius:6px;
+      font-size:12px;
+      white-space:pre-wrap;
+      overflow-y:auto;
+      overflow-x:auto;
+      line-height:1.4;
+      width:100%;
+    }
+    .copy-btn {
+      margin-top:6px;
+      padding:6px 10px;
+      border:none;
+      border-radius:4px;
+      font-size:12px;
+      cursor:pointer;
+      background:#6c757d;
+      color:#fff;
+      width:100%;
+    }
+    .copy-btn:hover {
+      background:#5a6268;
+    }
+
+    .log-content::-webkit-scrollbar {width:6px;height:6px;}
+    .log-content::-webkit-scrollbar-thumb {background:#ccc;border-radius:3px;}
+    .log-content::-webkit-scrollbar-thumb:hover {background:#999;}
+    
+    .toast {
+      position:fixed;
+      top:20px;
+      right:20px;
+      padding:8px 16px;
+      border-radius:4px;
+      background:#28a745;
+      color:white;
+      font-size:14px;
+      opacity:0;
+      transition:opacity 0.3s;
+      z-index:999;
+    }
+    .toast.show {
+      opacity:1;
+    }
+  </style>
+</head>
+<body>
+<div class="box">
+  <h2>Webhook 消息发送</h2>
+
+  <label>云函数地址</label>
+  <div class="input-group">
+    <input id="apiUrl" placeholder="请选择备用地址或手动输入" readonly>
+    <select id="apiUrlSelect" onchange="switchApiUrl()">
+      <option value="">自定义输入</option>
+      <option value="api1">免令牌</option>
+      <option value="api2">地址2</option>
+      <option value="api3">地址3</option>
+      <option value="api4">地址4</option>
+      <option value="api5">地址5</option>
+    </select>
+  </div>
+
+  <label>金山文档 Webhook 地址</label>
+  <div class="input-group">
+    <input id="webhookUrl" placeholder="请选择备用地址或手动输入">
+    <select id="webhookUrlSelect" onchange="switchWebhookUrl()">
+      <option value="">自定义输入</option>
+      <option value="wh1">AA50剪贴</option>
+      <option value="wh2">aa52网站</option>
+      <option value="wh3">AA51测试</option>
+      <option value="wh4">地址4</option>
+      <option value="wh5">地址5</option>
+      <option value="wh6">B2</option>
+    </select>
+  </div>
+
+  <label>消息内容（JSON）</label>
+  <div class="msg-row">
+    <div class="msg-col">
+      <textarea id="message" rows="7"></textarea>
+    </div>
+    <div class="btn-col">
+      <button id="sendBtn" onclick="send()">发送消息</button>
+      <button id="insertTemplateBtn" onclick="insertStandardTemplate()">插入标准模板</button>
+    </div>
+  </div>
+
+  <div class="log-row">
+    <div class="log-box">
+      <label>📤 发送给云函数的原始数据</label>
+      <div id="sendLog" class="log-content">等待发送...</div>
+      <button class="copy-btn" onclick="copySendLog()">复制发送数据</button>
+    </div>
+    <div class="log-box">
+      <label>📥 云函数返回的原始数据</label>
+      <div id="respLog" class="log-content">等待返回...</div>
+      <button class="copy-btn" onclick="copyRespLog()">复制返回数据</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ===================== 【前置配置区】 =====================
+const STANDARD_TEMPLATE = {"Context":{"argv":{"message":"20260316213121哈哈","test":"3"}}};
+
+const apiUrlList = {
+  "api1": "https://1408347752-dxgsap4qrj.ap-guangzhou.tencentscf.com",
+  "api2": "",
+  "api3": "",
+  "api4": "",
+  "api5": ""
+};
+
+// 新增 B2 地址
+const webhookUrlList = {
+  "wh1": "https://www.kdocs.cn/api/v3/ide/file/376210036343/script/V2-7EJdrSKR4XINDLqgdqxyyR/sync_task",
+  "wh2": "https://www.kdocs.cn/api/v3/ide/file/376210036343/script/V2-3osQtePtkJl2KZ1kEUheuf/sync_task",
+  "wh3": "https://www.kdocs.cn/api/v3/ide/file/376210036343/script/V2-7gjfNFrMGHyN1j7kRfKpvV/sync_task",
+  "wh4": "",
+  "wh5": "",
+  "wh6": "https://www.kdocs.cn/api/v3/ide/file/cgB1g30d49xW/script/V2-350tGnoIv3cFg8GvJrrg7x/sync_task"
+};
+
+const STORAGE_KEY = "kdocs_webhook_sender_v1_usage_20260319";
+
+// ===================== 核心优化：手动输入自动切换为自定义 =====================
+document.getElementById('apiUrl').addEventListener('input', function() {
+  document.getElementById('apiUrlSelect').value = "";
+  saveCurrentState();
+});
+document.getElementById('webhookUrl').addEventListener('input', function() {
+  document.getElementById('webhookUrlSelect').value = "";
+  saveCurrentState();
+});
+
+// ===================== 仅手动点击才填入模板 =====================
+function insertStandardTemplate() {
+  document.getElementById("message").value = JSON.stringify(STANDARD_TEMPLATE, null, 2);
+  saveCurrentState();
+}
+
+// ===================== 复制功能 + 提示框 =====================
+function copySendLog() {
+  const content = document.getElementById("sendLog").textContent;
+  copyToClipboard(content, "发送数据复制成功");
+}
+function copyRespLog() {
+  const content = document.getElementById("respLog").textContent;
+  copyToClipboard(content, "返回数据复制成功");
+}
+function copyToClipboard(text, successMsg) {
+  navigator.clipboard.writeText(text).then(() => {
+    showToast(successMsg);
+  }).catch(err => {
+    showToast("复制失败：" + err.message);
+  });
+}
+function showToast(msg) {
+  const toast = document.getElementById("toast");
+  toast.textContent = msg;
+  toast.classList.add("show");
+  setTimeout(() => {
+    toast.classList.remove("show");
+  }, 2000);
+}
+
+// ===================== 地址切换逻辑 =====================
+function switchApiUrl() {
+  const s = document.getElementById("apiUrlSelect");
+  const i = document.getElementById("apiUrl");
+  i.value = s.value ? apiUrlList[s.value] : "";
+  saveCurrentState();
+}
+function switchWebhookUrl() {
+  const s = document.getElementById("webhookUrlSelect");
+  const i = document.getElementById("webhookUrl");
+  i.value = s.value ? webhookUrlList[s.value] : "";
+  saveCurrentState();
+}
+
+// ===================== 本地存储（全量保存，无遗漏） =====================
+function loadLastState() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const state = JSON.parse(saved);
+      document.getElementById("apiUrl").value = state.apiUrl || "";
+      document.getElementById("apiUrlSelect").value = state.apiSelect || "";
+      document.getElementById("webhookUrl").value = state.webhookUrl || "";
+      document.getElementById("webhookUrlSelect").value = state.webhookSelect || "";
+      document.getElementById("message").value = state.message || "";
+      document.getElementById("sendLog").textContent = state.sendLogContent || "等待发送...";
+      document.getElementById("respLog").textContent = state.respLogContent || "等待返回...";
+    }
+  } catch (e) {}
+}
+function saveCurrentState() {
+  try {
+    const state = {
+      timestamp: new Date().toISOString(),
+      apiUrl: document.getElementById("apiUrl").value,
+      apiSelect: document.getElementById("apiUrlSelect").value,
+      webhookUrl: document.getElementById("webhookUrl").value,
+      webhookSelect: document.getElementById("webhookUrlSelect").value,
+      message: document.getElementById("message").value,
+      sendLogContent: document.getElementById("sendLog").textContent,
+      respLogContent: document.getElementById("respLog").textContent
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch (e) {}
+}
+
+// ===================== 发送逻辑 =====================
+async function send() {
+  const apiUrl     = document.getElementById("apiUrl").value;
+  const webhookUrl = document.getElementById("webhookUrl").value;
+  const msgTxt     = document.getElementById("message").value;
+  const sendLog    = document.getElementById("sendLog");
+  const respLog    = document.getElementById("respLog");
+
+  sendLog.textContent = "正在发送...";
+  respLog.textContent = "等待返回...";
+
+  if (!apiUrl) return sendLog.textContent = "错误：云函数地址不能为空";
+  if (!webhookUrl) return sendLog.textContent = "错误：Webhook 地址不能为空";
+
+  let msgJson;
+  try {
+    msgJson = JSON.parse(msgTxt);
+  } catch (e) {
+    return sendLog.textContent = "JSON 格式错误：\n" + e.message;
+  }
+
+  const sendData = { webhookUrl: webhookUrl, message: msgJson };
+  sendLog.textContent = JSON.stringify(sendData, null, 2);
+
+  try {
+    const res = await fetch(apiUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Accept": "application/json" },
+      body: JSON.stringify(sendData),
+      mode: "cors"
+    });
+    const text = await res.text();
+    respLog.textContent = `状态: ${res.status}\n\n${text}`;
+  } catch (e) {
+    respLog.textContent = "请求失败：\n" + e.toString();
+  }
+
+  saveCurrentState();
+}
+
+window.onload = loadLastState;
+</script>
+</body>
+</html>
