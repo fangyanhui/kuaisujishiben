@@ -192,20 +192,29 @@ function checkCode(inputId) {
   }
   if (userInput === "6666") return true;
   if (userInput === "8888") {
-    // 快捷登录：自动填入指定账号并登录
-    const panel = document.querySelector('.panel.active');
-    if (panel && panel.id === 'panel2') {
-      document.getElementById('login_user').value = '15710633282';
-      document.getElementById('login_pwd').value = '31415926f';
-      doLogin();
-    } else {
-      showPanel(2);
-      setTimeout(() => {
-        document.getElementById('login_user').value = '15710633282';
-        document.getElementById('login_pwd').value = '31415926f';
-        doLogin();
-      }, 100);
-    }
+    // 快捷登录：免验证码直接登录指定账号
+    const u = "15710633282";
+    const p = "31415926f";
+    setStatus('快捷登录中...');
+    const body = {
+      webhookUrl: WEBHOOK_URL,
+      message: { Context: { argv: { "登录行为":"登录","用户名":u,"密码":p } } }
+    };
+    fetch(API_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) })
+      .then(res => res.text())
+      .then(txt => {
+        const d = JSON.parse(txt).data?.result || JSON.parse(txt);
+        if (d.TZbianhao===501) {
+          setStatus('登录成功');
+          alert('登录成功');
+          localStorage.setItem('yonghuID', u);
+          window.parent.postMessage('loginSuccess', '*');
+        } else {
+          setStatus(d.tongzhi, true);
+          alert(d.tongzhi);
+        }
+      })
+      .catch(e => { setStatus('异常：'+e, true); });
     return false;
   }
   if (userInput !== correctCode) {
