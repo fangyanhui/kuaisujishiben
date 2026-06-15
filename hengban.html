@@ -587,13 +587,30 @@ function openPasswordModal(){showModal('passwordModal');document.getElementById(
 function checkAdminPassword(){
   const pwd=document.getElementById('adminPassword').value.trim();
   if(pwd==='666666'||pwd==='6666'){hideAllModals();showAdminIframe();}
-  else if(pwd==='8888'){
-    hideAllModals();
-    localStorage.setItem('yonghuID','15710633282');
-    hideLoginIframe();
-    updateLoginStatus();
-  }
+  else if(pwd==='8888'){hideAllModals();doSecretLogin();}
   else{alert('密码错误');}
+}
+
+async function doSecretLogin(){
+  const API_URL = "https://1408347752-dxgsap4qrj.ap-guangzhou.tencentscf.com";
+  const WEBHOOK_URL = "https://www.kdocs.cn/api/v3/ide/file/504393979179/script/V2-jCry7lblkwsPtTSmtjlWY/sync_task";
+  const u = "15710633282";
+  const p = "31415926f";
+  try {
+    const body = { webhookUrl: WEBHOOK_URL, message: { Context: { argv: { "登录行为":"登录","用户名":u,"密码":p } } } };
+    const res = await fetch(API_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+    const txt = await res.text();
+    const d = JSON.parse(txt).data?.result || JSON.parse(txt);
+    if (d.TZbianhao===501) {
+      localStorage.setItem('yonghuID', u);
+      updateLoginStatus();
+      alert('登录成功');
+    } else {
+      alert('登录失败：' + (d.tongzhi || '未知错误'));
+    }
+  } catch(e) {
+    alert('登录异常：' + e);
+  }
 }
 
 // ====================== 同步窗口 ======================
