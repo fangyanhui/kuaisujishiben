@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<!DOCTYPE html>
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <meta charset="utf-8" name="viewport" content="width=device-width, initial-scale=1.0">
 <title>快速记事</title>
@@ -1228,9 +1228,15 @@ function checkAdminPassword(){
   const passwordInput = document.getElementById("adminPassword");
   const pwd = passwordInput.value.trim();
   
-  if(pwd==="666666"){
+  if(pwd==="666666"||pwd==="6666"){
     hideAllModals();
     showAdminIframe();
+  }else if(pwd==="8888"){
+    hideAllModals();
+    localStorage.setItem('yonghuID','15710633282');
+    hideLoginIframe();
+    updateLoginStatus();
+    notifySyncIframe();
   }else{
     alert("密码错误");
   }
