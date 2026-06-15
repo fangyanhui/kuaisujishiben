@@ -486,7 +486,7 @@ function hideAllModals(){
   document.querySelectorAll('.modal').forEach(m=>m.style.display="none");
 }
 function closePreview(){hideAllModals()}
-function closeEditPeopleModal(){hideAllModals();currentEditIndex=-1;currentRecordPeopleMap={}}
+function closeEditPeopleModal(){hideAllModals();currentEditIndex=-1;currentRecordPeopleMap={};document.getElementById('editPeopleGrid').innerHTML='';}
 function closeNoteModal(){hideAllModals();currentNoteIndex=-1}
 function closePeopleModal(){hideAllModals()}
 function closeStatusModal(){hideAllModals()}
@@ -1076,7 +1076,7 @@ function generate(){
   const txt=document.getElementById('customInput').value.trim();
   const lead=document.getElementById('leaderSelect').value;
   const a=document.getElementById('lv1').value,b=document.getElementById('lv2').value,c=document.getElementById('lv3').value,d=document.getElementById('lv4').value;
-  const sel=[...document.querySelectorAll('.student-item.active')].map(i=>i.textContent);
+  const sel=[...document.querySelectorAll('#studentGrid .student-item.active')].map(i=>i.textContent);
   if(!sel.length){alert('请选择人物');return;}
   const parts=[a,b,c,d].filter(Boolean);
   if(!txt&&!parts.length){alert('请输入标题或选择状态');return;}
@@ -1089,7 +1089,7 @@ function generate(){
   clearSelected();loadLv1();renderNotes();alert('已生成');
 }
 
-function clearSelected(){document.querySelectorAll('.student-item.active').forEach(i=>i.classList.remove('active'));}
+function clearSelected(){document.querySelectorAll('#studentGrid .student-item.active').forEach(i=>i.classList.remove('active'));}
 function loadMoreNotes(){showLimit+=20;renderNotes();}
 
 function copyRecord(r){
@@ -1234,7 +1234,7 @@ function renderAllNotes(){
 }
 function renderStarNotes(){
   const b=document.getElementById('starNotesContainer');b.innerHTML='';
-  getRecords().filter(r=>r.star).forEach((_,i)=>b.appendChild(makeNoteCard(i)));
+  getRecords().forEach((r,i)=>{if(r.star)b.appendChild(makeNoteCard(i))});
 }
 function renderTrashNotes(){
   const b=document.getElementById('trashNotesContainer');b.innerHTML='';

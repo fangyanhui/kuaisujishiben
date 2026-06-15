@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<!DOCTYPE html>
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <meta charset="utf-8" name="viewport" content="width=device-width, initial-scale=1.0">
 <title>快速记事</title>
@@ -691,6 +691,7 @@ function closeEditPeopleModal(){
   hideAllModals();
   currentEditIndex=-1;
   currentRecordPeopleMap = {};
+  document.getElementById("editPeopleGrid").innerHTML="";
 }
 function closeNoteModal(){
   hideAllModals();
@@ -1413,7 +1414,7 @@ function generate(){
   const custom=document.getElementById("customInput").value.trim();
   const leader=document.getElementById("leaderSelect").value;
   const a=document.getElementById("lv1").value;const b=document.getElementById("lv2").value;const c=document.getElementById("lv3").value;const d=document.getElementById("lv4").value;
-  const selected=[...document.querySelectorAll(".item.active")].map(x=>x.textContent);
+  const selected=[...document.querySelectorAll("#mainGrid .item.active")].map(x=>x.textContent);
   if(selected.length===0){alert("请选择人物");return;}
   const levelParts=[a,b,c,d].filter(Boolean);
   const hasTitle=custom!==''||levelParts.length>0;
@@ -1437,7 +1438,7 @@ function generate(){
   alert("已生成");
 }
 
-function clearSelected(){document.querySelectorAll(".item.active").forEach(x=>x.classList.remove("active"))}
+function clearSelected(){document.querySelectorAll("#mainGrid .item.active").forEach(x=>x.classList.remove("active"))}
 
 function showMore(){
   showLimit+=5;
